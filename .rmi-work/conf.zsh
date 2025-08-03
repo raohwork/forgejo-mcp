@@ -1,0 +1,2 @@
+loadlib golang
+loadlib dotenv

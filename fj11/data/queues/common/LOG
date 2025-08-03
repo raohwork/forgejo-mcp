@@ -1,0 +1,25 @@
+=============== Aug 3, 2025 (CST) ===============
+17:13:22.924514 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+17:13:22.928856 db@open opening
+17:13:22.928986 version@stat F·[] S·0B[] Sc·[]
+17:13:22.930940 db@janitor F·2 G·0
+17:13:22.930964 db@open done T·2.086378ms
+=============== Aug 3, 2025 (CST) ===============
+17:19:16.899564 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+17:19:16.899703 version@stat F·[] S·0B[] Sc·[]
+17:19:16.899710 db@open opening
+17:19:16.899739 journal@recovery F·1
+17:19:16.899800 journal@recovery recovering @1
+17:19:16.905937 memdb@flush created L0@2 N·26 S·542B "act..igh,v26":"web..low,v17"
+17:19:16.906034 version@stat F·[1] S·542B[542B] Sc·[0.25]
+17:19:16.911963 db@janitor F·3 G·0
+17:19:16.912014 db@open done T·12.292463ms
+=============== Aug 3, 2025 (CST) ===============
+17:20:15.946374 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+17:20:15.946527 version@stat F·[1] S·542B[542B] Sc·[0.25]
+17:20:15.946534 db@open opening
+17:20:15.946565 journal@recovery F·1
+17:20:15.946785 journal@recovery recovering @3
+17:20:15.950343 version@stat F·[1] S·542B[542B] Sc·[0.25]
+17:20:15.956820 db@janitor F·3 G·0
+17:20:15.956856 db@open done T·10.298058ms

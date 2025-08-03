@@ -62,8 +62,13 @@
   - SDK: `EditIssue(owner, repo string, index int64, opt EditIssueOption) (*Issue, *Response, error)`
   - **到期時間:** 🟢 `PATCH /repos/{owner}/{repo}/issues/{index}` (修改 `due_date`)
   - SDK: `EditIssue(owner, repo string, index int64, opt EditIssueOption) (*Issue, *Response, error)`
-  - **依賴:** 🟡 `POST /repos/{owner}/{repo}/issues/{index}/dependencies`
-  - Custom: SDK 無支援，需自訂 HTTP 請求
+  - **依賴管理:** 🟡
+    - **新增依賴:** `POST /repos/{owner}/{repo}/issues/{index}/dependencies`
+    - Custom: SDK 無支援，需自訂 HTTP 請求
+    - **列出依賴:** `GET /repos/{owner}/{repo}/issues/{index}/dependencies`
+    - Custom: SDK 無支援，需自訂 HTTP 請求
+    - **移除依賴:** `DELETE /repos/{owner}/{repo}/issues/{index}/dependencies/{dependency_index}`
+    - Custom: SDK 無支援，需自訂 HTTP 請求
 - **附件管理** 🟡
   - **列出附件:** `GET /repos/{owner}/{repo}/issues/{index}/attachments`
   - Custom: SDK 無支援，需自訂 HTTP 請求

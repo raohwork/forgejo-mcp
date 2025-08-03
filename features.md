@@ -62,8 +62,13 @@ Labels available for a specific repository
   - SDK: `EditIssue(owner, repo string, index int64, opt EditIssueOption) (*Issue, *Response, error)`
   - **Due date:** 🟢 `PATCH /repos/{owner}/{repo}/issues/{index}` (modify `due_date`)
   - SDK: `EditIssue(owner, repo string, index int64, opt EditIssueOption) (*Issue, *Response, error)`
-  - **Dependencies:** 🟡 `POST /repos/{owner}/{repo}/issues/{index}/dependencies`
-  - Custom: Not supported by SDK, requires custom HTTP request
+  - **Dependency management:** 🟡
+    - **Add dependency:** `POST /repos/{owner}/{repo}/issues/{index}/dependencies`
+    - Custom: Not supported by SDK, requires custom HTTP request
+    - **List dependencies:** `GET /repos/{owner}/{repo}/issues/{index}/dependencies`
+    - Custom: Not supported by SDK, requires custom HTTP request
+    - **Remove dependency:** `DELETE /repos/{owner}/{repo}/issues/{index}/dependencies/{dependency_index}`
+    - Custom: Not supported by SDK, requires custom HTTP request
 - **Attachment management** 🟡
   - **List attachments:** `GET /repos/{owner}/{repo}/issues/{index}/attachments`
   - Custom: Not supported by SDK, requires custom HTTP request

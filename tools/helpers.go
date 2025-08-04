@@ -6,19 +6,26 @@
 
 package tools
 
-// Helper functions for creating pointers to basic types
+// Helper functions for creating pointers to basic types, primarily for use in
+// constructing jsonschema.Schema objects where optional fields require pointers.
 
-// boolPtr creates a pointer to a bool value
-func boolPtr(b bool) *bool {
+// BoolPtr creates a pointer to a bool value.
+// This is useful for setting optional boolean fields in structs that will be
+// serialized to JSON, such as in MCP tool definitions.
+func BoolPtr(b bool) *bool {
 	return &b
 }
 
-// intPtr creates a pointer to an int value
-func intPtr(i int) *int {
+// IntPtr creates a pointer to an int value.
+// This is useful for setting optional integer fields in structs that will be
+// serialized to JSON, such as in MCP tool definitions.
+func IntPtr(i int) *int {
 	return &i
 }
 
-// float64Ptr creates a pointer to a float64 value
-func float64Ptr(f float64) *float64 {
+// Float64Ptr creates a pointer to a float64 value.
+// This is useful for setting optional number fields in structs that will be
+// serialized to JSON, such as in MCP tool definitions.
+func Float64Ptr(f float64) *float64 {
 	return &f
 }

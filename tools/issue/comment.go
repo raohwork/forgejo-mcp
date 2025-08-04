@@ -39,7 +39,9 @@ type ListIssueCommentsParams struct {
 // ListIssueCommentsImpl implements the read-only MCP tool for listing issue comments.
 // This is a safe, idempotent operation that uses the Forgejo SDK to fetch a list
 // of comments for a specific issue.
-type ListIssueCommentsImpl struct{}
+type ListIssueCommentsImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `list_issue_comments` tool. It requires `owner`, `repo`,
 // and the issue `index`. It supports time-based filtering and pagination and is
@@ -119,7 +121,9 @@ type CreateIssueCommentParams struct {
 
 // CreateIssueCommentImpl implements the MCP tool for creating a new comment on an issue.
 // This is a non-idempotent operation that posts a new comment using the Forgejo SDK.
-type CreateIssueCommentImpl struct{}
+type CreateIssueCommentImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `create_issue_comment` tool. It requires the issue `index`
 // and the comment `body`. It is not idempotent, as multiple calls will create
@@ -184,7 +188,9 @@ type EditIssueCommentParams struct {
 // EditIssueCommentImpl implements the MCP tool for editing an existing issue comment.
 // This is an idempotent operation that modifies a comment's content using the
 // Forgejo SDK.
-type EditIssueCommentImpl struct{}
+type EditIssueCommentImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `edit_issue_comment` tool. It requires the `comment_id`
 // and the new `body`. It is marked as idempotent.
@@ -247,7 +253,9 @@ type DeleteIssueCommentParams struct {
 // DeleteIssueCommentImpl implements the destructive MCP tool for deleting an issue comment.
 // This is an idempotent but irreversible operation that removes a comment using the
 // Forgejo SDK.
-type DeleteIssueCommentImpl struct{}
+type DeleteIssueCommentImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `delete_issue_comment` tool. It requires the `comment_id`
 // to be deleted. It is marked as a destructive operation to ensure clients can

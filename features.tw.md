@@ -77,7 +77,7 @@
     - Custom: SDK 無支援，需自訂 HTTP 請求
     - **列出依賴:** `GET /repos/{owner}/{repo}/issues/{index}/dependencies`
     - Custom: SDK 無支援，需自訂 HTTP 請求
-    - **移除依賴:** `DELETE /repos/{owner}/{repo}/issues/{index}/dependencies/{dependency_index}`
+    - **移除依賴:** `DELETE /repos/{owner}/{repo}/issues/{index}/dependencies` (透過 request body)
     - Custom: SDK 無支援，需自訂 HTTP 請求
 - **編輯 Issue 評論** 🟢
   - `PATCH /repos/{owner}/{repo}/issues/comments/{id}`
@@ -86,13 +86,13 @@
   - `DELETE /repos/{owner}/{repo}/issues/comments/{id}`
   - SDK: `DeleteIssueComment(owner, repo string, commentID int64) (*Response, error)`
 - **附件管理** 🟡
-  - **列出附件:** `GET /repos/{owner}/{repo}/issues/{index}/attachments`
+  - **列出附件:** `GET /repos/{owner}/{repo}/issues/{index}/assets`
   - Custom: SDK 無支援，需自訂 HTTP 請求
-  - **新增附件:** `POST /repos/{owner}/{repo}/issues/{index}/attachments`
+  - **新增附件:** `POST /repos/{owner}/{repo}/issues/{index}/assets`
   - Custom: SDK 無支援，需自訂 HTTP 請求
-  - **刪除附件:** `DELETE /repos/{owner}/{repo}/issues/{index}/attachments/{attachment_id}`
+  - **刪除附件:** `DELETE /repos/{owner}/{repo}/issues/{index}/assets/{attachment_id}`
   - Custom: SDK 無支援，需自訂 HTTP 請求
-  - **修改附件:** `PATCH /repos/{owner}/{repo}/issues/{index}/attachments/{attachment_id}`
+  - **修改附件:** `PATCH /repos/{owner}/{repo}/issues/{index}/assets/{attachment_id}`
   - Custom: SDK 無支援，需自訂 HTTP 請求
 
 ### Wiki 相關功能 🟡
@@ -128,9 +128,9 @@
   - SDK: `ListReleaseAttachments(user, repo string, release int64, opt ListReleaseAttachmentsOptions) ([]*Attachment, *Response, error)`
   - **新增附件:** `POST /repos/{owner}/{repo}/releases/{id}/assets`
   - SDK: `CreateReleaseAttachment(user, repo string, release int64, file io.Reader, filename string) (*Attachment, *Response, error)`
-  - **刪除附件:** `DELETE /repos/{owner}/{repo}/releases/assets/{id}`
+  - **刪除附件:** `DELETE /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id}`
   - SDK: `DeleteReleaseAttachment(user, repo string, release, id int64) (*Response, error)`
-  - **修改附件:** `PATCH /repos/{owner}/{repo}/releases/assets/{id}`
+  - **修改附件:** `PATCH /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id}`
   - SDK: `EditReleaseAttachment(user, repo string, release, attachment int64, form EditAttachmentOptions) (*Attachment, *Response, error)`
 
 ### PR 管理 🟢

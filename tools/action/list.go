@@ -17,22 +17,12 @@ import (
 )
 
 // ListActionTasksParams defines the parameters for the list_action_tasks tool.
-// It includes options for filtering and paginating Forgejo Actions tasks.
+// It includes basic pagination options for Forgejo Actions tasks.
 type ListActionTasksParams struct {
 	// Owner is the username or organization name that owns the repository.
 	Owner string `json:"owner"`
 	// Repo is the name of the repository.
 	Repo string `json:"repo"`
-	// Status filters tasks by their execution status.
-	Status string `json:"status,omitempty"`
-	// Workflow filters tasks by the workflow name.
-	Workflow string `json:"workflow,omitempty"`
-	// Actor filters tasks by the user who triggered the action.
-	Actor string `json:"actor,omitempty"`
-	// Branch filters tasks by the branch name.
-	Branch string `json:"branch,omitempty"`
-	// Event filters tasks by the trigger event (e.g., 'push').
-	Event string `json:"event,omitempty"`
 	// Page is the page number for pagination.
 	Page int `json:"page,omitempty"`
 	// Limit is the number of tasks to return per page.
@@ -51,7 +41,7 @@ func (ListActionTasksImpl) Definition() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "list_action_tasks",
 		Title:       "List Action Tasks",
-		Description: "List Forgejo Actions execution tasks in a repository. Returns task information including status, workflow, and execution details.",
+		Description: "List Forgejo Actions execution tasks in a repository with basic pagination support.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint:   true,
 			IdempotentHint: true,
@@ -66,27 +56,6 @@ func (ListActionTasksImpl) Definition() *mcp.Tool {
 				"repo": {
 					Type:        "string",
 					Description: "Repository name",
-				},
-				"status": {
-					Type:        "string",
-					Description: "Filter by task status: 'success', 'failure', 'cancelled', 'skipped', 'running', 'waiting', or 'blocked' (optional)",
-					Enum:        []any{"success", "failure", "cancelled", "skipped", "running", "waiting", "blocked"},
-				},
-				"workflow": {
-					Type:        "string",
-					Description: "Filter by workflow name (optional)",
-				},
-				"actor": {
-					Type:        "string",
-					Description: "Filter by the user who triggered the action (optional)",
-				},
-				"branch": {
-					Type:        "string",
-					Description: "Filter by branch name (optional)",
-				},
-				"event": {
-					Type:        "string",
-					Description: "Filter by trigger event: 'push', 'pull_request', 'schedule', etc. (optional)",
 				},
 				"page": {
 					Type:        "integer",

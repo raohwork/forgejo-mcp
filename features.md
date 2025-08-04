@@ -77,7 +77,7 @@ Labels available for a specific repository
     - Custom: Not supported by SDK, requires custom HTTP request
     - **List dependencies:** `GET /repos/{owner}/{repo}/issues/{index}/dependencies`
     - Custom: Not supported by SDK, requires custom HTTP request
-    - **Remove dependency:** `DELETE /repos/{owner}/{repo}/issues/{index}/dependencies/{dependency_index}`
+    - **Remove dependency:** `DELETE /repos/{owner}/{repo}/issues/{index}/dependencies` (via request body)
     - Custom: Not supported by SDK, requires custom HTTP request
 - **Edit Issue Comments** 🟢
   - `PATCH /repos/{owner}/{repo}/issues/comments/{id}`
@@ -86,13 +86,13 @@ Labels available for a specific repository
   - `DELETE /repos/{owner}/{repo}/issues/comments/{id}`
   - SDK: `DeleteIssueComment(owner, repo string, commentID int64) (*Response, error)`
 - **Attachment management** 🟡
-  - **List attachments:** `GET /repos/{owner}/{repo}/issues/{index}/attachments`
+  - **List attachments:** `GET /repos/{owner}/{repo}/issues/{index}/assets`
   - Custom: Not supported by SDK, requires custom HTTP request
-  - **Add attachment:** `POST /repos/{owner}/{repo}/issues/{index}/attachments`
+  - **Add attachment:** `POST /repos/{owner}/{repo}/issues/{index}/assets`
   - Custom: Not supported by SDK, requires custom HTTP request
-  - **Delete attachment:** `DELETE /repos/{owner}/{repo}/issues/{index}/attachments/{attachment_id}`
+  - **Delete attachment:** `DELETE /repos/{owner}/{repo}/issues/{index}/assets/{attachment_id}`
   - Custom: Not supported by SDK, requires custom HTTP request
-  - **Modify attachment:** `PATCH /repos/{owner}/{repo}/issues/{index}/attachments/{attachment_id}`
+  - **Modify attachment:** `PATCH /repos/{owner}/{repo}/issues/{index}/assets/{attachment_id}`
   - Custom: Not supported by SDK, requires custom HTTP request
 
 ### Wiki Features 🟡
@@ -128,9 +128,9 @@ Labels available for a specific repository
   - SDK: `ListReleaseAttachments(user, repo string, release int64, opt ListReleaseAttachmentsOptions) ([]*Attachment, *Response, error)`
   - **Add attachment:** `POST /repos/{owner}/{repo}/releases/{id}/assets`
   - SDK: `CreateReleaseAttachment(user, repo string, release int64, file io.Reader, filename string) (*Attachment, *Response, error)`
-  - **Delete attachment:** `DELETE /repos/{owner}/{repo}/releases/assets/{id}`
+  - **Delete attachment:** `DELETE /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id}`
   - SDK: `DeleteReleaseAttachment(user, repo string, release, id int64) (*Response, error)`
-  - **Modify attachment:** `PATCH /repos/{owner}/{repo}/releases/assets/{id}`
+  - **Modify attachment:** `PATCH /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id}`
   - SDK: `EditReleaseAttachment(user, repo string, release, attachment int64, form EditAttachmentOptions) (*Attachment, *Response, error)`
 
 ### PR Management 🟢

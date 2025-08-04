@@ -8,12 +8,16 @@ package issue
 
 import (
 	"context"
-	"errors"
+	"encoding/base64"
+	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
+	"github.com/raohwork/forgejo-mcp/types"
 )
 
 // ListIssueAttachmentsParams defines the parameters for the list_issue_attachments tool.
@@ -30,7 +34,9 @@ type ListIssueAttachmentsParams struct {
 // ListIssueAttachmentsImpl implements the read-only MCP tool for listing issue attachments.
 // This is a safe, idempotent operation. Note: This feature is not supported by the
 // official Forgejo SDK and requires a custom HTTP implementation.
-type ListIssueAttachmentsImpl struct{}
+type ListIssueAttachmentsImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `list_issue_attachments` tool. It requires `owner`, `repo`,
 // and the issue `index`. It is marked as a safe, read-only operation.
@@ -67,10 +73,29 @@ func (ListIssueAttachmentsImpl) Definition() *mcp.Tool {
 // Handler implements the logic for listing issue attachments. It performs a custom
 // HTTP GET request to the `/repos/{owner}/{repo}/issues/{index}/assets`
 // endpoint and formats the results into a markdown list.
-func (ListIssueAttachmentsImpl) Handler() mcp.ToolHandlerFor[ListIssueAttachmentsParams, any] {
+func (impl ListIssueAttachmentsImpl) Handler() mcp.ToolHandlerFor[ListIssueAttachmentsParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListIssueAttachmentsParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// List issue attachments using the custom client method
+		attachments, err := impl.Client.MyListIssueAttachments(p.Owner, p.Repo, int64(p.Index))
+		if err != nil {
+			return nil, fmt.Errorf("failed to list issue attachments: %w", err)
+		}
+
+		// Convert to types.AttachmentList for consistent formatting
+		attachmentList := make(types.AttachmentList, len(attachments))
+		for i, attachment := range attachments {
+			attachmentList[i] = &types.Attachment{Attachment: attachment}
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("# Issue #%d Attachments\n\n%s", p.Index, attachmentList.ToMarkdown()),
+				},
+			},
+		}, nil
 	}
 }
 
@@ -83,8 +108,10 @@ type CreateIssueAttachmentParams struct {
 	Repo string `json:"repo"`
 	// Index is the issue number to attach the file to.
 	Index int `json:"index"`
-	// FilePath is the local path to the file to be uploaded as an attachment.
-	FilePath string `json:"file_path"`
+	// Filename is the name of the file to be uploaded.
+	Filename string `json:"filename"`
+	// Content is the base64-encoded content of the file.
+	Content string `json:"content"`
 	// Name is an optional display name for the attachment.
 	Name string `json:"name,omitempty"`
 }
@@ -93,7 +120,9 @@ type CreateIssueAttachmentParams struct {
 // This is a non-idempotent operation that uploads a file from the local filesystem.
 // Note: This feature is not supported by the official Forgejo SDK and requires a
 // custom HTTP implementation.
-type CreateIssueAttachmentImpl struct{}
+type CreateIssueAttachmentImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `create_issue_attachment` tool. It requires the issue `index`
 // and a local `file_path`. It is not idempotent, as multiple calls will upload
@@ -123,27 +152,55 @@ func (CreateIssueAttachmentImpl) Definition() *mcp.Tool {
 					Type:        "integer",
 					Description: "Issue index number",
 				},
-				"file_path": {
+				"filename": {
 					Type:        "string",
-					Description: "Absolute path to the file to attach",
+					Description: "Name of the file to attach",
+				},
+				"content": {
+					Type:        "string",
+					Description: "Base64-encoded content of the file",
 				},
 				"name": {
 					Type:        "string",
 					Description: "Optional display name for the attachment (defaults to filename)",
 				},
 			},
-			Required: []string{"owner", "repo", "index", "file_path"},
+			Required: []string{"owner", "repo", "index", "filename", "content"},
 		},
 	}
 }
 
-// Handler implements the logic for creating an issue attachment. It reads the file
-// from the specified `file_path` and performs a custom HTTP POST request to upload
-// it. It will return an error if the file cannot be read.
-func (CreateIssueAttachmentImpl) Handler() mcp.ToolHandlerFor[CreateIssueAttachmentParams, any] {
+// Handler implements the logic for creating an issue attachment. It decodes the
+// base64 content and performs a custom HTTP POST request to upload it.
+func (impl CreateIssueAttachmentImpl) Handler() mcp.ToolHandlerFor[CreateIssueAttachmentParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[CreateIssueAttachmentParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Decode base64 content
+		content, err := base64.StdEncoding.DecodeString(p.Content)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode base64 content: %w", err)
+		}
+
+		// Create a reader from the decoded content
+		file := strings.NewReader(string(content))
+
+		// Use the custom client method to create the attachment
+		attachment, err := impl.Client.MyCreateIssueAttachment(p.Owner, p.Repo, int64(p.Index), p.Filename, file, p.Name, "")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create issue attachment: %w", err)
+		}
+
+		// Convert to types.Attachment for consistent formatting
+		result := &types.Attachment{Attachment: attachment}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("# Issue Attachment Created\n\n%s", result.ToMarkdown()),
+				},
+			},
+		}, nil
 	}
 }
 
@@ -163,7 +220,9 @@ type DeleteIssueAttachmentParams struct {
 // DeleteIssueAttachmentImpl implements the destructive MCP tool for deleting an issue attachment.
 // This is an idempotent but irreversible operation. Note: This feature is not supported
 // by the official Forgejo SDK and requires a custom HTTP implementation.
-type DeleteIssueAttachmentImpl struct{}
+type DeleteIssueAttachmentImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `delete_issue_attachment` tool. It requires the issue `index`
 // and `attachment_id`. It is marked as a destructive operation.
@@ -205,10 +264,29 @@ func (DeleteIssueAttachmentImpl) Definition() *mcp.Tool {
 // Handler implements the logic for deleting an issue attachment. It performs a custom
 // HTTP DELETE request to the `/repos/{owner}/{repo}/issues/{index}/assets/{attachment_id}`
 // endpoint. On success, it returns a simple text confirmation.
-func (DeleteIssueAttachmentImpl) Handler() mcp.ToolHandlerFor[DeleteIssueAttachmentParams, any] {
+func (impl DeleteIssueAttachmentImpl) Handler() mcp.ToolHandlerFor[DeleteIssueAttachmentParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[DeleteIssueAttachmentParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Convert attachment ID from string to int64
+		attachmentID, err := strconv.ParseInt(p.AttachmentID, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid attachment ID: %w", err)
+		}
+
+		// Delete the attachment using the custom client method
+		err = impl.Client.MyDeleteIssueAttachment(p.Owner, p.Repo, int64(p.Index), attachmentID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete issue attachment: %w", err)
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Issue attachment %s deleted successfully from issue #%d", p.AttachmentID, p.Index),
+				},
+			},
+		}, nil
 	}
 }
 
@@ -230,7 +308,9 @@ type EditIssueAttachmentParams struct {
 // EditIssueAttachmentImpl implements the MCP tool for editing an issue attachment.
 // This is an idempotent operation. Note: This feature is not supported by the
 // official Forgejo SDK and requires a custom HTTP implementation.
-type EditIssueAttachmentImpl struct{}
+type EditIssueAttachmentImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `edit_issue_attachment` tool. It requires the issue `index`,
 // `attachment_id`, and a new `name`. It is marked as idempotent.
@@ -276,9 +356,36 @@ func (EditIssueAttachmentImpl) Definition() *mcp.Tool {
 // Handler implements the logic for editing an issue attachment. It performs a custom
 // HTTP PATCH request to the `/repos/{owner}/{repo}/issues/{index}/assets/{attachment_id}`
 // endpoint. It will return an error if the attachment is not found.
-func (EditIssueAttachmentImpl) Handler() mcp.ToolHandlerFor[EditIssueAttachmentParams, any] {
+func (impl EditIssueAttachmentImpl) Handler() mcp.ToolHandlerFor[EditIssueAttachmentParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[EditIssueAttachmentParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Convert attachment ID from string to int64
+		attachmentID, err := strconv.ParseInt(p.AttachmentID, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid attachment ID: %w", err)
+		}
+
+		// Create options struct from parameters
+		options := tools.MyEditAttachmentOptions{
+			Name: p.Name,
+		}
+
+		// Edit the attachment using the custom client method
+		attachment, err := impl.Client.MyEditIssueAttachment(p.Owner, p.Repo, int64(p.Index), attachmentID, options)
+		if err != nil {
+			return nil, fmt.Errorf("failed to edit issue attachment: %w", err)
+		}
+
+		// Convert to types.Attachment for consistent formatting
+		result := &types.Attachment{Attachment: attachment}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("# Issue Attachment Updated\n\n%s", result.ToMarkdown()),
+				},
+			},
+		}, nil
 	}
 }

@@ -8,13 +8,15 @@ package issue
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"time"
 
+	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
+	"github.com/raohwork/forgejo-mcp/types"
 )
 
 // ListIssueCommentsParams defines the parameters for the list_issue_comments tool.
@@ -99,10 +101,48 @@ func (ListIssueCommentsImpl) Definition() *mcp.Tool {
 
 // Handler implements the logic for listing issue comments. It calls the Forgejo SDK's
 // `ListIssueComments` function and formats the results into a markdown list.
-func (ListIssueCommentsImpl) Handler() mcp.ToolHandlerFor[ListIssueCommentsParams, any] {
+func (impl ListIssueCommentsImpl) Handler() mcp.ToolHandlerFor[ListIssueCommentsParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListIssueCommentsParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		opt := forgejo.ListIssueCommentOptions{}
+		if !p.Since.IsZero() {
+			opt.Since = p.Since
+		}
+		if !p.Before.IsZero() {
+			opt.Before = p.Before
+		}
+		if p.Page > 0 {
+			opt.Page = p.Page
+		}
+		if p.Limit > 0 {
+			opt.PageSize = p.Limit
+		}
+
+		comments, _, err := impl.Client.ListIssueComments(p.Owner, p.Repo, int64(p.Index), opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list comments: %w", err)
+		}
+
+		var content string
+		if len(comments) == 0 {
+			content = "No comments found for this issue."
+		} else {
+			var commentsMarkdown string
+			for _, comment := range comments {
+				commentWrapper := &types.Comment{Comment: comment}
+				commentsMarkdown += commentWrapper.ToMarkdown() + "\n\n---\n\n"
+			}
+			content = fmt.Sprintf("Found %d comments\n\n%s", len(comments), commentsMarkdown)
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: content,
+				},
+			},
+		}, nil
 	}
 }
 
@@ -165,10 +205,28 @@ func (CreateIssueCommentImpl) Definition() *mcp.Tool {
 
 // Handler implements the logic for creating an issue comment. It calls the Forgejo
 // SDK's `CreateIssueComment` function and returns the details of the new comment.
-func (CreateIssueCommentImpl) Handler() mcp.ToolHandlerFor[CreateIssueCommentParams, any] {
+func (impl CreateIssueCommentImpl) Handler() mcp.ToolHandlerFor[CreateIssueCommentParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[CreateIssueCommentParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		opt := forgejo.CreateIssueCommentOption{
+			Body: p.Body,
+		}
+
+		comment, _, err := impl.Client.CreateIssueComment(p.Owner, p.Repo, int64(p.Index), opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create comment: %w", err)
+		}
+
+		commentWrapper := &types.Comment{Comment: comment}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: commentWrapper.ToMarkdown(),
+				},
+			},
+		}, nil
 	}
 }
 
@@ -232,10 +290,28 @@ func (EditIssueCommentImpl) Definition() *mcp.Tool {
 // Handler implements the logic for editing an issue comment. It calls the Forgejo
 // SDK's `EditIssueComment` function. It will return an error if the comment ID
 // is not found.
-func (EditIssueCommentImpl) Handler() mcp.ToolHandlerFor[EditIssueCommentParams, any] {
+func (impl EditIssueCommentImpl) Handler() mcp.ToolHandlerFor[EditIssueCommentParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[EditIssueCommentParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		opt := forgejo.EditIssueCommentOption{
+			Body: p.Body,
+		}
+
+		comment, _, err := impl.Client.EditIssueComment(p.Owner, p.Repo, int64(p.CommentID), opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to edit comment: %w", err)
+		}
+
+		commentWrapper := &types.Comment{Comment: comment}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: commentWrapper.ToMarkdown(),
+				},
+			},
+		}, nil
 	}
 }
 
@@ -294,9 +370,21 @@ func (DeleteIssueCommentImpl) Definition() *mcp.Tool {
 // Handler implements the logic for deleting an issue comment. It calls the Forgejo
 // SDK's `DeleteIssueComment` function. On success, it returns a simple text
 // confirmation. It will return an error if the comment does not exist.
-func (DeleteIssueCommentImpl) Handler() mcp.ToolHandlerFor[DeleteIssueCommentParams, any] {
+func (impl DeleteIssueCommentImpl) Handler() mcp.ToolHandlerFor[DeleteIssueCommentParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[DeleteIssueCommentParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		_, err := impl.Client.DeleteIssueComment(p.Owner, p.Repo, int64(p.CommentID))
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete comment: %w", err)
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Comment %d successfully deleted.", p.CommentID),
+				},
+			},
+		}, nil
 	}
 }

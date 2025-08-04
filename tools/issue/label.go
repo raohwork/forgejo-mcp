@@ -8,12 +8,14 @@ package issue
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
+	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
+	"github.com/raohwork/forgejo-mcp/types"
 )
 
 // AddIssueLabelsParams defines the parameters for the add_issue_labels tool.
@@ -32,7 +34,9 @@ type AddIssueLabelsParams struct {
 // AddIssueLabelsImpl implements the MCP tool for adding labels to an issue.
 // This is an idempotent operation that uses the Forgejo SDK to associate one
 // or more existing labels with an issue.
-type AddIssueLabelsImpl struct{}
+type AddIssueLabelsImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `add_issue_labels` tool. It requires the issue's `index`
 // and an array of `labels` (IDs). It is marked as idempotent.
@@ -78,10 +82,41 @@ func (AddIssueLabelsImpl) Definition() *mcp.Tool {
 // Handler implements the logic for adding labels to an issue. It calls the
 // Forgejo SDK's `AddIssueLabels` function. It will return an error if the issue
 // or any of the label IDs are not found.
-func (AddIssueLabelsImpl) Handler() mcp.ToolHandlerFor[AddIssueLabelsParams, any] {
+func (impl AddIssueLabelsImpl) Handler() mcp.ToolHandlerFor[AddIssueLabelsParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[AddIssueLabelsParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Convert int labels to int64
+		labelIDs := make([]int64, len(p.Labels))
+		for i, label := range p.Labels {
+			labelIDs[i] = int64(label)
+		}
+
+		opt := forgejo.IssueLabelsOption{
+			Labels: labelIDs,
+		}
+
+		labels, _, err := impl.Client.AddIssueLabels(p.Owner, p.Repo, int64(p.Index), opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to add labels: %w", err)
+		}
+
+		// Convert to our types
+		var labelsMarkdown string
+		for _, label := range labels {
+			labelWrapper := &types.Label{Label: label}
+			labelsMarkdown += labelWrapper.ToMarkdown() + "\n"
+		}
+
+		content := fmt.Sprintf("Added %d labels to issue #%d\n\n%s", len(labels), p.Index, labelsMarkdown)
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: content,
+				},
+			},
+		}, nil
 	}
 }
 
@@ -101,7 +136,9 @@ type RemoveIssueLabelParams struct {
 // RemoveIssueLabelImpl implements the MCP tool for removing a label from an issue.
 // This is an idempotent operation that uses the Forgejo SDK to disassociate a
 // label from an issue.
-type RemoveIssueLabelImpl struct{}
+type RemoveIssueLabelImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `remove_issue_label` tool. It requires the issue's
 // `index` and a single `label` ID to remove. It is marked as idempotent.
@@ -143,10 +180,22 @@ func (RemoveIssueLabelImpl) Definition() *mcp.Tool {
 // Handler implements the logic for removing a label from an issue. It calls the
 // Forgejo SDK's `DeleteIssueLabel` function. On success, it returns a simple
 // text confirmation. It will return an error if the issue or label is not found.
-func (RemoveIssueLabelImpl) Handler() mcp.ToolHandlerFor[RemoveIssueLabelParams, any] {
+func (impl RemoveIssueLabelImpl) Handler() mcp.ToolHandlerFor[RemoveIssueLabelParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[RemoveIssueLabelParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		_, err := impl.Client.DeleteIssueLabel(p.Owner, p.Repo, int64(p.Index), int64(p.Label))
+		if err != nil {
+			return nil, fmt.Errorf("failed to remove label: %w", err)
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Label %d successfully removed from issue #%d.", p.Label, p.Index),
+				},
+			},
+		}, nil
 	}
 }
 
@@ -166,7 +215,9 @@ type ReplaceIssueLabelsParams struct {
 // ReplaceIssueLabelsImpl implements the MCP tool for replacing all labels on an issue.
 // This is an idempotent operation that uses the Forgejo SDK to set the definitive
 // list of labels for an issue.
-type ReplaceIssueLabelsImpl struct{}
+type ReplaceIssueLabelsImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `replace_issue_labels` tool. It requires the issue's
 // `index` and an array of `labels` (IDs) to apply. It is marked as idempotent.
@@ -211,9 +262,40 @@ func (ReplaceIssueLabelsImpl) Definition() *mcp.Tool {
 // Handler implements the logic for replacing issue labels. It calls the Forgejo
 // SDK's `ReplaceIssueLabels` function. It will return an error if the issue or
 // any of the label IDs are not found.
-func (ReplaceIssueLabelsImpl) Handler() mcp.ToolHandlerFor[ReplaceIssueLabelsParams, any] {
+func (impl ReplaceIssueLabelsImpl) Handler() mcp.ToolHandlerFor[ReplaceIssueLabelsParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ReplaceIssueLabelsParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Convert int labels to int64
+		labelIDs := make([]int64, len(p.Labels))
+		for i, label := range p.Labels {
+			labelIDs[i] = int64(label)
+		}
+
+		opt := forgejo.IssueLabelsOption{
+			Labels: labelIDs,
+		}
+
+		labels, _, err := impl.Client.ReplaceIssueLabels(p.Owner, p.Repo, int64(p.Index), opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to replace labels: %w", err)
+		}
+
+		// Convert to our types
+		var labelsMarkdown string
+		for _, label := range labels {
+			labelWrapper := &types.Label{Label: label}
+			labelsMarkdown += labelWrapper.ToMarkdown() + "\n"
+		}
+
+		content := fmt.Sprintf("Replaced labels for issue #%d with %d labels\n\n%s", p.Index, len(labels), labelsMarkdown)
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: content,
+				},
+			},
+		}, nil
 	}
 }

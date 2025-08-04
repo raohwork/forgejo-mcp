@@ -10,9 +10,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
+
+const forgejo_version_to_test = "11.0.1+gitea-1.22.0"
 
 // sendSimpleRequest Specification:
 //
@@ -64,7 +67,7 @@ func TestClient_sendSimpleRequest(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client, err := NewClient(server.URL, "test-token", server.Client())
+		client, err := NewClient(server.URL, "test-token", forgejo_version_to_test, server.Client())
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
@@ -93,7 +96,7 @@ func TestClient_sendSimpleRequest(t *testing.T) {
 			if r.Header.Get("Content-Type") != "application/json" {
 				t.Errorf("Expected Content-Type: application/json, got %s", r.Header.Get("Content-Type"))
 			}
-			
+
 			var reqBody map[string]interface{}
 			json.NewDecoder(r.Body).Decode(&reqBody)
 			if reqBody["index"] != float64(2) {
@@ -107,7 +110,7 @@ func TestClient_sendSimpleRequest(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client, err := NewClient(server.URL, "test-token", server.Client())
+		client, err := NewClient(server.URL, "test-token", forgejo_version_to_test, server.Client())
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
@@ -135,7 +138,7 @@ func TestClient_sendSimpleRequest(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client, err := NewClient(server.URL, "test-token", server.Client())
+		client, err := NewClient(server.URL, "test-token", forgejo_version_to_test, server.Client())
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
@@ -157,7 +160,7 @@ func TestClient_sendSimpleRequest(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client, err := NewClient(server.URL, "test-token", server.Client())
+		client, err := NewClient(server.URL, "test-token", forgejo_version_to_test, server.Client())
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
@@ -213,39 +216,39 @@ func TestClient_sendUploadRequest(t *testing.T) {
 			if !strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
 				t.Errorf("Expected multipart/form-data Content-Type, got %s", r.Header.Get("Content-Type"))
 			}
-			
+
 			// Parse multipart form
 			err := r.ParseMultipartForm(32 << 20) // 32MB
 			if err != nil {
 				t.Errorf("Failed to parse multipart form: %v", err)
 			}
-			
+
 			// Check extra fields
 			if r.FormValue("name") != "test.txt" {
 				t.Errorf("Expected name='test.txt', got %s", r.FormValue("name"))
 			}
-			
+
 			// Check file
 			file, header, err := r.FormFile("attachment")
 			if err != nil {
 				t.Errorf("Failed to get file: %v", err)
 			}
 			defer file.Close()
-			
+
 			if header.Filename != "test.txt" {
 				t.Errorf("Expected filename='test.txt', got %s", header.Filename)
 			}
 
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"id":       "123",
-				"name":     "test.txt",
+				"id":           "123",
+				"name":         "test.txt",
 				"download_url": "http://example.com/download/123",
 			})
 		}))
 		defer server.Close()
 
-		client, err := NewClient(server.URL, "test-token", server.Client())
+		client, err := NewClient(server.URL, "test-token", forgejo_version_to_test, server.Client())
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
@@ -253,9 +256,9 @@ func TestClient_sendUploadRequest(t *testing.T) {
 		file := strings.NewReader("test file content")
 		extraFields := map[string]string{"name": "test.txt"}
 		var result map[string]interface{}
-		
+
 		err = client.sendUploadRequest("/api/v1/repos/owner/repo/issues/1/assets", "test.txt", file, extraFields, &result)
-		
+
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
 		}
@@ -274,18 +277,18 @@ func TestClient_sendUploadRequest(t *testing.T) {
 			if r.Method != "POST" {
 				t.Errorf("Expected POST method, got %s", r.Method)
 			}
-			
+
 			err := r.ParseMultipartForm(32 << 20)
 			if err != nil {
 				t.Errorf("Failed to parse multipart form: %v", err)
 			}
-			
+
 			file, header, err := r.FormFile("attachment")
 			if err != nil {
 				t.Errorf("Failed to get file: %v", err)
 			}
 			defer file.Close()
-			
+
 			if header.Filename != "empty.txt" {
 				t.Errorf("Expected filename='empty.txt', got %s", header.Filename)
 			}
@@ -298,16 +301,16 @@ func TestClient_sendUploadRequest(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client, err := NewClient(server.URL, "test-token", server.Client())
+		client, err := NewClient(server.URL, "test-token", forgejo_version_to_test, server.Client())
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
 
 		file := strings.NewReader("")
 		var result map[string]interface{}
-		
+
 		err = client.sendUploadRequest("/api/v1/repos/owner/repo/issues/1/assets", "empty.txt", file, nil, &result)
-		
+
 		if err != nil {
 			t.Errorf("Expected no error for empty file, got %v", err)
 		}
@@ -316,7 +319,7 @@ func TestClient_sendUploadRequest(t *testing.T) {
 		}
 	})
 
-	// Upload error test  
+	// Upload error test
 	t.Run("upload_error", func(t *testing.T) {
 		// Mock server returning 500 error
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -327,18 +330,46 @@ func TestClient_sendUploadRequest(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client, err := NewClient(server.URL, "test-token", server.Client())
+		client, err := NewClient(server.URL, "test-token", forgejo_version_to_test, server.Client())
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
 
 		file := strings.NewReader("test content")
 		var result map[string]interface{}
-		
+
 		err = client.sendUploadRequest("/api/v1/repos/owner/repo/issues/1/assets", "test.txt", file, nil, &result)
-		
+
 		if err == nil {
 			t.Error("Expected error for 500 response, got nil")
 		}
 	})
+}
+
+func TestCustomClient_Integral(t *testing.T) {
+	server := os.Getenv("FORGEJO_TEST_SERVER")
+	token := os.Getenv("FORGEJO_TEST_TOKEN")
+	repo := os.Getenv("FORGEJO_TEST_REPO")
+	if server == "" || token == "" || repo == "" {
+		t.Skip("Skipping test, FORGEJO_TEST_SERVER, FORGEJO_TEST_TOKEN, and FORGEJO_TEST_REPO must be set")
+	}
+
+	t.Logf("Using server: %s, repo: %s", server, repo)
+	cl, err := NewClient(server, token, "", nil)
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	var resp map[string]any
+	err = cl.sendSimpleRequest("GET", "/api/v1/repos/"+repo+"/actions/tasks", nil, &resp)
+	if err != nil {
+		t.Fatalf("Failed to get response: %v", err)
+	}
+
+	if resp["total_count"] == nil {
+		t.Error("Expected total_count in response, got nil")
+	}
+	if resp["workflow_runs"] == nil {
+		t.Error("Expected tasks in response, got nil")
+	}
 }

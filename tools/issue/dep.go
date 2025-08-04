@@ -8,12 +8,13 @@ package issue
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
+	"github.com/raohwork/forgejo-mcp/types"
 )
 
 // ListIssueDependenciesParams defines the parameters for the list_issue_dependencies tool.
@@ -30,7 +31,9 @@ type ListIssueDependenciesParams struct {
 // ListIssueDependenciesImpl implements the read-only MCP tool for listing issue dependencies.
 // This is a safe, idempotent operation. Note: This feature is not supported by the
 // official Forgejo SDK and requires a custom HTTP implementation.
-type ListIssueDependenciesImpl struct{}
+type ListIssueDependenciesImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `list_issue_dependencies` tool. It requires `owner`, `repo`,
 // and the issue `index`. It is marked as a safe, read-only operation.
@@ -67,10 +70,34 @@ func (ListIssueDependenciesImpl) Definition() *mcp.Tool {
 // Handler implements the logic for listing issue dependencies. It performs a custom
 // HTTP GET request to the `/repos/{owner}/{repo}/issues/{index}/dependencies`
 // endpoint and formats the results into a markdown list.
-func (ListIssueDependenciesImpl) Handler() mcp.ToolHandlerFor[ListIssueDependenciesParams, any] {
+func (impl ListIssueDependenciesImpl) Handler() mcp.ToolHandlerFor[ListIssueDependenciesParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListIssueDependenciesParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		issues, err := impl.Client.MyListIssueDependencies(p.Owner, p.Repo, int64(p.Index))
+		if err != nil {
+			return nil, fmt.Errorf("failed to list dependencies: %w", err)
+		}
+
+		var content string
+		if len(issues) == 0 {
+			content = "No dependencies found for this issue."
+		} else {
+			var issuesMarkdown string
+			for _, issue := range issues {
+				issueWrapper := &types.Issue{Issue: issue}
+				issuesMarkdown += issueWrapper.ToMarkdown() + "\n\n---\n\n"
+			}
+			content = fmt.Sprintf("Found %d dependencies for issue #%d\n\n%s", len(issues), p.Index, issuesMarkdown)
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: content,
+				},
+			},
+		}, nil
 	}
 }
 
@@ -90,7 +117,9 @@ type AddIssueDependencyParams struct {
 // AddIssueDependencyImpl implements the MCP tool for adding a dependency to an issue.
 // This is an idempotent operation. Note: This feature is not supported by the
 // official Forgejo SDK and requires a custom HTTP implementation.
-type AddIssueDependencyImpl struct{}
+type AddIssueDependencyImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `add_issue_dependency` tool. It requires the `index` of
 // the dependent issue and the `dependency_index` of the issue it depends on.
@@ -133,10 +162,30 @@ func (AddIssueDependencyImpl) Definition() *mcp.Tool {
 // Handler implements the logic for adding an issue dependency. It performs a custom
 // HTTP POST request to the `/repos/{owner}/{repo}/issues/{index}/dependencies`
 // endpoint. It will return an error if either issue cannot be found.
-func (AddIssueDependencyImpl) Handler() mcp.ToolHandlerFor[AddIssueDependencyParams, any] {
+func (impl AddIssueDependencyImpl) Handler() mcp.ToolHandlerFor[AddIssueDependencyParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[AddIssueDependencyParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		dependency := tools.MyIssueMeta{
+			Owner: p.Owner,
+			Name:  p.Repo,
+			Index: int64(p.DependencyIndex),
+		}
+
+		issue, err := impl.Client.MyAddIssueDependency(p.Owner, p.Repo, int64(p.Index), dependency)
+		if err != nil {
+			return nil, fmt.Errorf("failed to add dependency: %w", err)
+		}
+
+		issueWrapper := &types.Issue{Issue: issue}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Dependency added to issue #%d\n\n%s", p.Index, issueWrapper.ToMarkdown()),
+				},
+			},
+		}, nil
 	}
 }
 
@@ -156,7 +205,9 @@ type RemoveIssueDependencyParams struct {
 // RemoveIssueDependencyImpl implements the destructive MCP tool for removing an issue dependency.
 // This is an idempotent but destructive operation. Note: This feature is not supported
 // by the official Forgejo SDK and requires a custom HTTP implementation.
-type RemoveIssueDependencyImpl struct{}
+type RemoveIssueDependencyImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `remove_issue_dependency` tool. It requires the `index` of
 // the dependent issue and the `dependency_index` to remove. It is marked as a
@@ -199,9 +250,29 @@ func (RemoveIssueDependencyImpl) Definition() *mcp.Tool {
 // Handler implements the logic for removing an issue dependency. It performs a custom
 // HTTP DELETE request to the `/repos/{owner}/{repo}/issues/{index}/dependencies/{dependency_index}`
 // endpoint. On success, it returns a simple text confirmation.
-func (RemoveIssueDependencyImpl) Handler() mcp.ToolHandlerFor[RemoveIssueDependencyParams, any] {
+func (impl RemoveIssueDependencyImpl) Handler() mcp.ToolHandlerFor[RemoveIssueDependencyParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[RemoveIssueDependencyParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		dependency := tools.MyIssueMeta{
+			Owner: p.Owner,
+			Name:  p.Repo,
+			Index: int64(p.DependencyIndex),
+		}
+
+		issue, err := impl.Client.MyRemoveIssueDependency(p.Owner, p.Repo, int64(p.Index), dependency)
+		if err != nil {
+			return nil, fmt.Errorf("failed to remove dependency: %w", err)
+		}
+
+		issueWrapper := &types.Issue{Issue: issue}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Dependency removed from issue #%d\n\n%s", p.Index, issueWrapper.ToMarkdown()),
+				},
+			},
+		}, nil
 	}
 }

@@ -346,12 +346,18 @@ func TestClient_sendUploadRequest(t *testing.T) {
 	})
 }
 
+// DO NOT TEST AGAINST PRODUCTION FORGEJO SERVERS
+// DO NOT TEST AGAINST REPO THAT HAS MORE THAN 50 WORKFLOW RUNS
 func TestCustomClient_Integral(t *testing.T) {
 	server := os.Getenv("FORGEJO_TEST_SERVER")
 	token := os.Getenv("FORGEJO_TEST_TOKEN")
 	repo := os.Getenv("FORGEJO_TEST_REPO")
 	if server == "" || token == "" || repo == "" {
 		t.Skip("Skipping test, FORGEJO_TEST_SERVER, FORGEJO_TEST_TOKEN, and FORGEJO_TEST_REPO must be set")
+	}
+	arr := strings.Split(repo, "/")
+	if len(arr) != 2 {
+		t.Fatalf("Invalid repo format, expected 'owner/repo', got '%s'", repo)
 	}
 
 	t.Logf("Using server: %s, repo: %s", server, repo)
@@ -360,16 +366,23 @@ func TestCustomClient_Integral(t *testing.T) {
 		t.Fatalf("Failed to create client: %v", err)
 	}
 
-	var resp map[string]any
-	err = cl.sendSimpleRequest("GET", "/api/v1/repos/"+repo+"/actions/tasks", nil, &resp)
+	resp, err := cl.MyListActionTasks(arr[0], arr[1])
 	if err != nil {
-		t.Fatalf("Failed to get response: %v", err)
+		t.Fatalf("Failed to list action tasks: %v", err)
 	}
 
-	if resp["total_count"] == nil {
-		t.Error("Expected total_count in response, got nil")
+	if resp == nil {
+		t.Fatal("Expected non-nil response, got nil")
 	}
-	if resp["workflow_runs"] == nil {
-		t.Error("Expected tasks in response, got nil")
+
+	if resp.TotalCount < 0 {
+		t.Errorf("Expected TotalCount >= 0, got %d", resp.TotalCount)
+	}
+
+	if len(resp.WorkflowRuns) != int(resp.TotalCount) {
+		t.Errorf("Expected WorkflowRuns length %d, got %d", resp.TotalCount, len(resp.WorkflowRuns))
+	}
+	if len(resp.WorkflowRuns) > 0 {
+		t.Logf("First WorkflowRun ID: %d, Name: %s, Status: %s", resp.WorkflowRuns[0].ID, resp.WorkflowRuns[0].Name, resp.WorkflowRuns[0].Status)
 	}
 }

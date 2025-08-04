@@ -8,10 +8,13 @@ package pullreq
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/raohwork/forgejo-mcp/tools"
+	"github.com/raohwork/forgejo-mcp/types"
 )
 
 // GetPullRequestParams defines the parameters for the get_pull_request tool.
@@ -28,7 +31,9 @@ type GetPullRequestParams struct {
 // GetPullRequestImpl implements the read-only MCP tool for fetching a single pull request.
 // This is a safe, idempotent operation that uses the Forgejo SDK to retrieve
 // detailed information about a specific pull request.
-type GetPullRequestImpl struct{}
+type GetPullRequestImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `get_pull_request` tool. It requires `owner`, `repo`,
 // and the pull request `index`. It is marked as a safe, read-only operation.
@@ -65,9 +70,25 @@ func (GetPullRequestImpl) Definition() *mcp.Tool {
 // Handler implements the logic for fetching a pull request. It calls the Forgejo
 // SDK's `GetPullRequest` function and formats the result into a detailed markdown
 // view. It will return an error if the pull request is not found.
-func (GetPullRequestImpl) Handler() mcp.ToolHandlerFor[GetPullRequestParams, any] {
+func (impl GetPullRequestImpl) Handler() mcp.ToolHandlerFor[GetPullRequestParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[GetPullRequestParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Call SDK
+		pr, _, err := impl.Client.GetPullRequest(p.Owner, p.Repo, int64(p.Index))
+		if err != nil {
+			return nil, fmt.Errorf("failed to get pull request: %w", err)
+		}
+
+		// Convert to our type and format
+		prWrapper := &types.PullRequest{PullRequest: pr}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: prWrapper.ToMarkdown(),
+				},
+			},
+		}, nil
 	}
 }

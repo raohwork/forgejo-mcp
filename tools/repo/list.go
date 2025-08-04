@@ -8,12 +8,14 @@ package repo
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
+	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
+	"github.com/raohwork/forgejo-mcp/types"
 )
 
 // SearchRepositoriesParams defines the parameters for the search_repositories tool.
@@ -38,7 +40,9 @@ type SearchRepositoriesParams struct {
 // SearchRepositoriesImpl implements the read-only MCP tool for searching repositories.
 // This operation is safe, idempotent, and uses the Forgejo SDK to find repositories
 // across the entire Forgejo instance based on a query string.
-type SearchRepositoriesImpl struct{}
+type SearchRepositoriesImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `search_repositories` tool. It requires a search query `q`
 // and supports various optional parameters for sorting and pagination. It is
@@ -96,10 +100,61 @@ func (SearchRepositoriesImpl) Definition() *mcp.Tool {
 
 // Handler implements the logic for searching repositories. It calls the Forgejo SDK's
 // `SearchRepos` function and formats the results into a markdown list.
-func (SearchRepositoriesImpl) Handler() mcp.ToolHandlerFor[SearchRepositoriesParams, any] {
+func (impl SearchRepositoriesImpl) Handler() mcp.ToolHandlerFor[SearchRepositoriesParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[SearchRepositoriesParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Build options for SDK call
+		opt := forgejo.SearchRepoOptions{
+			Keyword: p.Q,
+		}
+		if p.Topic {
+			opt.KeywordIsTopic = p.Topic
+		}
+		if p.IncludeDesc {
+			opt.KeywordInDescription = p.IncludeDesc
+		}
+		if p.Sort != "" {
+			opt.Sort = p.Sort
+		}
+		if p.Order != "" {
+			opt.Order = p.Order
+		}
+		if p.Page > 0 {
+			opt.Page = p.Page
+		}
+		if p.Limit > 0 {
+			opt.PageSize = p.Limit
+		}
+
+		// Call SDK
+		repos, _, err := impl.Client.SearchRepos(opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to search repositories: %w", err)
+		}
+
+		// Convert to our types and format
+		var content string
+		if len(repos) == 0 {
+			content = "No repositories found matching the search criteria."
+		} else {
+			// Convert repos to our type
+			repoList := make(types.RepositoryList, len(repos))
+			for i, repo := range repos {
+				repoList[i] = &types.Repository{Repository: repo}
+			}
+
+			content = fmt.Sprintf("Found %d repositories\n\n%s",
+				len(repos), repoList.ToMarkdown())
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: content,
+				},
+			},
+		}, nil
 	}
 }
 
@@ -123,7 +178,9 @@ type ListMyRepositoriesParams struct {
 // ListMyRepositoriesImpl implements the read-only MCP tool for listing the
 // authenticated user's repositories. This is a safe, idempotent operation that
 // uses the Forgejo SDK.
-type ListMyRepositoriesImpl struct{}
+type ListMyRepositoriesImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `list_my_repositories` tool. It supports optional
 // parameters for filtering and sorting, and is marked as a safe, read-only operation.
@@ -178,10 +235,49 @@ func (ListMyRepositoriesImpl) Definition() *mcp.Tool {
 
 // Handler implements the logic for listing the user's repositories. It calls the
 // Forgejo SDK's `ListMyRepos` function and formats the results into a markdown list.
-func (ListMyRepositoriesImpl) Handler() mcp.ToolHandlerFor[ListMyRepositoriesParams, any] {
+func (impl ListMyRepositoriesImpl) Handler() mcp.ToolHandlerFor[ListMyRepositoriesParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListMyRepositoriesParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Build options for SDK call
+		opt := forgejo.ListReposOptions{}
+		// Note: ListReposOptions is quite limited in the SDK
+		// Many filtering options are not available
+		if p.Page > 0 {
+			opt.Page = p.Page
+		}
+		if p.Limit > 0 {
+			opt.PageSize = p.Limit
+		}
+
+		// Call SDK
+		repos, _, err := impl.Client.ListMyRepos(opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list my repositories: %w", err)
+		}
+
+		// Convert to our types and format
+		var content string
+		if len(repos) == 0 {
+			content = "No repositories found for the authenticated user."
+		} else {
+			// Convert repos to our type
+			repoList := make(types.RepositoryList, len(repos))
+			for i, repo := range repos {
+				repoList[i] = &types.Repository{Repository: repo}
+			}
+
+			content = fmt.Sprintf("Found %d repositories\n\n%s",
+				len(repos), repoList.ToMarkdown())
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: content,
+				},
+			},
+		}, nil
 	}
 }
 
@@ -205,7 +301,9 @@ type ListOrgRepositoriesParams struct {
 // ListOrgRepositoriesImpl implements the read-only MCP tool for listing an
 // organization's repositories. This is a safe, idempotent operation that uses
 // the Forgejo SDK.
-type ListOrgRepositoriesImpl struct{}
+type ListOrgRepositoriesImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `list_org_repositories` tool. It requires an `org` name
 // and supports optional parameters for filtering and sorting. It is marked as a
@@ -260,10 +358,49 @@ func (ListOrgRepositoriesImpl) Definition() *mcp.Tool {
 
 // Handler implements the logic for listing organization repositories. It calls the
 // Forgejo SDK's `ListOrgRepos` function and formats the results into a markdown list.
-func (ListOrgRepositoriesImpl) Handler() mcp.ToolHandlerFor[ListOrgRepositoriesParams, any] {
+func (impl ListOrgRepositoriesImpl) Handler() mcp.ToolHandlerFor[ListOrgRepositoriesParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListOrgRepositoriesParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Build options for SDK call
+		opt := forgejo.ListOrgReposOptions{}
+		// Note: ListOrgReposOptions is quite limited in the SDK
+		// Type filtering is not available
+		if p.Page > 0 {
+			opt.Page = p.Page
+		}
+		if p.Limit > 0 {
+			opt.PageSize = p.Limit
+		}
+
+		// Call SDK
+		repos, _, err := impl.Client.ListOrgRepos(p.Org, opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list organization repositories: %w", err)
+		}
+
+		// Convert to our types and format
+		var content string
+		if len(repos) == 0 {
+			content = fmt.Sprintf("No repositories found for organization '%s'.", p.Org)
+		} else {
+			// Convert repos to our type
+			repoList := make(types.RepositoryList, len(repos))
+			for i, repo := range repos {
+				repoList[i] = &types.Repository{Repository: repo}
+			}
+
+			content = fmt.Sprintf("Found %d repositories for organization '%s'\n\n%s",
+				len(repos), p.Org, repoList.ToMarkdown())
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: content,
+				},
+			},
+		}, nil
 	}
 }
 
@@ -279,7 +416,9 @@ type GetRepositoryParams struct {
 // GetRepositoryImpl implements the read-only MCP tool for fetching detailed
 // information about a single repository. This is a safe, idempotent operation
 // that uses the Forgejo SDK.
-type GetRepositoryImpl struct{}
+type GetRepositoryImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `get_repository` tool. It requires `owner` and `repo`
 // as parameters and is marked as a safe, read-only operation.
@@ -312,9 +451,25 @@ func (GetRepositoryImpl) Definition() *mcp.Tool {
 // Handler implements the logic for fetching repository details. It calls the
 // Forgejo SDK's `GetRepo` function and formats the full repository object into
 // a detailed markdown view.
-func (GetRepositoryImpl) Handler() mcp.ToolHandlerFor[GetRepositoryParams, any] {
+func (impl GetRepositoryImpl) Handler() mcp.ToolHandlerFor[GetRepositoryParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[GetRepositoryParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Call SDK
+		repo, _, err := impl.Client.GetRepo(p.Owner, p.Repo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get repository: %w", err)
+		}
+
+		// Convert to our type and format
+		repoWrapper := &types.Repository{Repository: repo}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: repoWrapper.ToMarkdown(),
+				},
+			},
+		}, nil
 	}
 }

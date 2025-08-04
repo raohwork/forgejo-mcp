@@ -8,13 +8,15 @@ package milestone
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"time"
 
+	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
+	"github.com/raohwork/forgejo-mcp/types"
 )
 
 // ListRepoMilestonesParams defines the parameters for the list_repo_milestones tool.
@@ -31,7 +33,9 @@ type ListRepoMilestonesParams struct {
 // ListRepoMilestonesImpl implements the read-only MCP tool for listing repository milestones.
 // This is a safe, idempotent operation that uses the Forgejo SDK to fetch a list
 // of milestones, optionally filtered by their state.
-type ListRepoMilestonesImpl struct{}
+type ListRepoMilestonesImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `list_repo_milestones` tool. It requires `owner` and `repo`,
 // supports an optional `state` filter, and is marked as a safe, read-only operation.
@@ -68,10 +72,44 @@ func (ListRepoMilestonesImpl) Definition() *mcp.Tool {
 
 // Handler implements the logic for listing milestones. It calls the Forgejo SDK's
 // `ListRepoMilestones` function and formats the results into a markdown list.
-func (ListRepoMilestonesImpl) Handler() mcp.ToolHandlerFor[ListRepoMilestonesParams, any] {
+func (impl ListRepoMilestonesImpl) Handler() mcp.ToolHandlerFor[ListRepoMilestonesParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListRepoMilestonesParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Build options for SDK call
+		opt := forgejo.ListMilestoneOption{}
+		if p.State != "" {
+			opt.State = forgejo.StateType(p.State)
+		}
+
+		// Call SDK
+		milestones, _, err := impl.Client.ListRepoMilestones(p.Owner, p.Repo, opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list milestones: %w", err)
+		}
+
+		// Convert to our types and format
+		var content string
+		if len(milestones) == 0 {
+			content = "No milestones found in this repository."
+		} else {
+			// Convert milestones to our type
+			milestoneList := make(types.MilestoneList, len(milestones))
+			for i, milestone := range milestones {
+				milestoneList[i] = &types.Milestone{Milestone: milestone}
+			}
+
+			content = fmt.Sprintf("Found %d milestones\n\n%s",
+				len(milestones), milestoneList.ToMarkdown())
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: content,
+				},
+			},
+		}, nil
 	}
 }
 
@@ -93,7 +131,9 @@ type CreateMilestoneParams struct {
 // CreateMilestoneImpl implements the MCP tool for creating a new milestone.
 // This is a non-idempotent operation that creates a new milestone object
 // using the Forgejo SDK.
-type CreateMilestoneImpl struct{}
+type CreateMilestoneImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `create_milestone` tool. It requires `owner`, `repo`,
 // and a `title`. It is not idempotent, as multiple calls with the same title
@@ -140,10 +180,37 @@ func (CreateMilestoneImpl) Definition() *mcp.Tool {
 
 // Handler implements the logic for creating a milestone. It calls the Forgejo SDK's
 // `CreateMilestone` function and returns the details of the newly created milestone.
-func (CreateMilestoneImpl) Handler() mcp.ToolHandlerFor[CreateMilestoneParams, any] {
+func (impl CreateMilestoneImpl) Handler() mcp.ToolHandlerFor[CreateMilestoneParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[CreateMilestoneParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Build options for SDK call
+		opt := forgejo.CreateMilestoneOption{
+			Title:       p.Title,
+			Description: p.Description,
+		}
+
+		// Set due date if provided
+		if !p.DueDate.IsZero() {
+			opt.Deadline = &p.DueDate
+		}
+
+		// Call SDK
+		milestone, _, err := impl.Client.CreateMilestone(p.Owner, p.Repo, opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create milestone: %w", err)
+		}
+
+		// Convert to our type and format
+		milestoneWrapper := &types.Milestone{Milestone: milestone}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: milestoneWrapper.ToMarkdown(),
+				},
+			},
+		}, nil
 	}
 }
 
@@ -169,7 +236,9 @@ type EditMilestoneParams struct {
 // EditMilestoneImpl implements the MCP tool for editing an existing milestone.
 // This is an idempotent operation that modifies a milestone's metadata using
 // the Forgejo SDK.
-type EditMilestoneImpl struct{}
+type EditMilestoneImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `edit_milestone` tool. It requires `owner`, `repo`, and
 // the milestone `id`. It is marked as idempotent.
@@ -224,10 +293,42 @@ func (EditMilestoneImpl) Definition() *mcp.Tool {
 
 // Handler implements the logic for editing a milestone. It calls the Forgejo SDK's
 // `EditMilestone` function. It will return an error if the milestone ID is not found.
-func (EditMilestoneImpl) Handler() mcp.ToolHandlerFor[EditMilestoneParams, any] {
+func (impl EditMilestoneImpl) Handler() mcp.ToolHandlerFor[EditMilestoneParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[EditMilestoneParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Build options for SDK call
+		opt := forgejo.EditMilestoneOption{}
+		if p.Title != "" {
+			opt.Title = p.Title
+		}
+		if p.Description != "" {
+			opt.Description = &p.Description
+		}
+		if p.State != "" {
+			state := forgejo.StateType(p.State)
+			opt.State = &state
+		}
+		if !p.DueDate.IsZero() {
+			opt.Deadline = &p.DueDate
+		}
+
+		// Call SDK
+		milestone, _, err := impl.Client.EditMilestone(p.Owner, p.Repo, int64(p.ID), opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to edit milestone: %w", err)
+		}
+
+		// Convert to our type and format
+		milestoneWrapper := &types.Milestone{Milestone: milestone}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: milestoneWrapper.ToMarkdown(),
+				},
+			},
+		}, nil
 	}
 }
 
@@ -245,7 +346,9 @@ type DeleteMilestoneParams struct {
 // DeleteMilestoneImpl implements the destructive MCP tool for deleting a milestone.
 // This is an idempotent but irreversible operation that removes a milestone from
 // a repository using the Forgejo SDK.
-type DeleteMilestoneImpl struct{}
+type DeleteMilestoneImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `delete_milestone` tool. It requires `owner`, `repo`,
 // and the milestone `id`. It is marked as a destructive operation to ensure
@@ -284,9 +387,25 @@ func (DeleteMilestoneImpl) Definition() *mcp.Tool {
 // Handler implements the logic for deleting a milestone. It calls the Forgejo SDK's
 // `DeleteMilestone` function. On success, it returns a simple text confirmation.
 // It will return an error if the milestone does not exist.
-func (DeleteMilestoneImpl) Handler() mcp.ToolHandlerFor[DeleteMilestoneParams, any] {
+func (impl DeleteMilestoneImpl) Handler() mcp.ToolHandlerFor[DeleteMilestoneParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[DeleteMilestoneParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Call SDK
+		_, err := impl.Client.DeleteMilestone(p.Owner, p.Repo, int64(p.ID))
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete milestone: %w", err)
+		}
+
+		// Return success message
+		emptyResponse := types.EmptyResponse{}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: emptyResponse.ToMarkdown(),
+				},
+			},
+		}, nil
 	}
 }

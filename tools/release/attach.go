@@ -8,12 +8,16 @@ package release
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
 
+	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
+	"github.com/raohwork/forgejo-mcp/types"
 )
 
 // ListReleaseAttachmentsParams defines the parameters for the list_release_attachments tool.
@@ -30,7 +34,9 @@ type ListReleaseAttachmentsParams struct {
 // ListReleaseAttachmentsImpl implements the read-only MCP tool for listing release attachments.
 // This is a safe, idempotent operation that uses the Forgejo SDK to fetch a list
 // of all attachments for a specific release.
-type ListReleaseAttachmentsImpl struct{}
+type ListReleaseAttachmentsImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `list_release_attachments` tool. It requires `owner`,
 // `repo`, and `release_id`. It is marked as a safe, read-only operation.
@@ -66,10 +72,38 @@ func (ListReleaseAttachmentsImpl) Definition() *mcp.Tool {
 
 // Handler implements the logic for listing release attachments. It calls the Forgejo
 // SDK's `ListReleaseAttachments` function and formats the results into a markdown list.
-func (ListReleaseAttachmentsImpl) Handler() mcp.ToolHandlerFor[ListReleaseAttachmentsParams, any] {
+func (impl ListReleaseAttachmentsImpl) Handler() mcp.ToolHandlerFor[ListReleaseAttachmentsParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListReleaseAttachmentsParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Call SDK
+		attachments, _, err := impl.Client.ListReleaseAttachments(p.Owner, p.Repo, int64(p.ReleaseID), forgejo.ListReleaseAttachmentsOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list release attachments: %w", err)
+		}
+
+		// Convert to our types and format
+		var content string
+		if len(attachments) == 0 {
+			content = "No attachments found for this release."
+		} else {
+			// Convert attachments to our type
+			attachmentList := make(types.AttachmentList, len(attachments))
+			for i, attachment := range attachments {
+				attachmentList[i] = &types.Attachment{Attachment: attachment}
+			}
+
+			content = fmt.Sprintf("Found %d attachments\n\n%s",
+				len(attachments), attachmentList.ToMarkdown())
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: content,
+				},
+			},
+		}, nil
 	}
 }
 
@@ -91,7 +125,9 @@ type CreateReleaseAttachmentParams struct {
 // CreateReleaseAttachmentImpl implements the MCP tool for adding an attachment to a release.
 // This is a non-idempotent operation that uploads a file from the local filesystem
 // to the specified release using the Forgejo SDK.
-type CreateReleaseAttachmentImpl struct{}
+type CreateReleaseAttachmentImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `create_release_attachment` tool. It requires `release_id`
 // and a local `file_path`. It is not idempotent, as multiple calls will upload
@@ -138,10 +174,39 @@ func (CreateReleaseAttachmentImpl) Definition() *mcp.Tool {
 // Handler implements the logic for creating a release attachment. It reads the file
 // from the specified `file_path`, then calls the Forgejo SDK's `CreateReleaseAttachment`
 // function to upload it. It will return an error if the file cannot be read.
-func (CreateReleaseAttachmentImpl) Handler() mcp.ToolHandlerFor[CreateReleaseAttachmentParams, any] {
+func (impl CreateReleaseAttachmentImpl) Handler() mcp.ToolHandlerFor[CreateReleaseAttachmentParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[CreateReleaseAttachmentParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Open and read the file
+		file, err := os.Open(p.FilePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open file: %w", err)
+		}
+		defer file.Close()
+
+		// Determine filename
+		filename := p.Name
+		if filename == "" {
+			filename = filepath.Base(p.FilePath)
+		}
+
+		// Call SDK
+		attachment, _, err := impl.Client.CreateReleaseAttachment(p.Owner, p.Repo, int64(p.ReleaseID), file, filename)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create release attachment: %w", err)
+		}
+
+		// Convert to our type and format
+		attachmentWrapper := &types.Attachment{Attachment: attachment}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: attachmentWrapper.ToMarkdown(),
+				},
+			},
+		}, nil
 	}
 }
 
@@ -163,7 +228,9 @@ type EditReleaseAttachmentParams struct {
 // EditReleaseAttachmentImpl implements the MCP tool for editing a release attachment.
 // This is an idempotent operation that renames an existing attachment using the
 // Forgejo SDK.
-type EditReleaseAttachmentImpl struct{}
+type EditReleaseAttachmentImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `edit_release_attachment` tool. It requires `release_id`,
 // `attachment_id`, and a new `name`. It is marked as idempotent.
@@ -209,10 +276,31 @@ func (EditReleaseAttachmentImpl) Definition() *mcp.Tool {
 // Handler implements the logic for editing a release attachment. It calls the Forgejo
 // SDK's `EditReleaseAttachment` function. It will return an error if the attachment
 // ID is not found.
-func (EditReleaseAttachmentImpl) Handler() mcp.ToolHandlerFor[EditReleaseAttachmentParams, any] {
+func (impl EditReleaseAttachmentImpl) Handler() mcp.ToolHandlerFor[EditReleaseAttachmentParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[EditReleaseAttachmentParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Build options for SDK call
+		opt := forgejo.EditAttachmentOptions{
+			Name: p.Name,
+		}
+
+		// Call SDK
+		attachment, _, err := impl.Client.EditReleaseAttachment(p.Owner, p.Repo, int64(p.ReleaseID), int64(p.AttachmentID), opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to edit release attachment: %w", err)
+		}
+
+		// Convert to our type and format
+		attachmentWrapper := &types.Attachment{Attachment: attachment}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: attachmentWrapper.ToMarkdown(),
+				},
+			},
+		}, nil
 	}
 }
 
@@ -232,7 +320,9 @@ type DeleteReleaseAttachmentParams struct {
 // DeleteReleaseAttachmentImpl implements the destructive MCP tool for deleting a release attachment.
 // This is an idempotent but irreversible operation that removes an attachment from a
 // release using the Forgejo SDK.
-type DeleteReleaseAttachmentImpl struct{}
+type DeleteReleaseAttachmentImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `delete_release_attachment` tool. It requires `release_id`
 // and `attachment_id`. It is marked as a destructive operation to ensure clients
@@ -275,9 +365,25 @@ func (DeleteReleaseAttachmentImpl) Definition() *mcp.Tool {
 // Handler implements the logic for deleting a release attachment. It calls the Forgejo
 // SDK's `DeleteReleaseAttachment` function. On success, it returns a simple text
 // confirmation. It will return an error if the attachment does not exist.
-func (DeleteReleaseAttachmentImpl) Handler() mcp.ToolHandlerFor[DeleteReleaseAttachmentParams, any] {
+func (impl DeleteReleaseAttachmentImpl) Handler() mcp.ToolHandlerFor[DeleteReleaseAttachmentParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[DeleteReleaseAttachmentParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Call SDK
+		_, err := impl.Client.DeleteReleaseAttachment(p.Owner, p.Repo, int64(p.ReleaseID), int64(p.AttachmentID))
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete release attachment: %w", err)
+		}
+
+		// Return success message
+		emptyResponse := types.EmptyResponse{}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: emptyResponse.ToMarkdown(),
+				},
+			},
+		}, nil
 	}
 }

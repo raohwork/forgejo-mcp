@@ -8,10 +8,14 @@ package wiki
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/raohwork/forgejo-mcp/tools"
+	"github.com/raohwork/forgejo-mcp/types"
 )
 
 // ListWikiPagesParams defines the parameters for the list_wiki_pages tool.
@@ -27,7 +31,9 @@ type ListWikiPagesParams struct {
 // This operation is safe, idempotent, and does not modify any data. It fetches
 // all available wiki pages for a specified repository. Note: This feature is not
 // supported by the official Forgejo SDK and requires a custom HTTP implementation.
-type ListWikiPagesImpl struct{}
+type ListWikiPagesImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `list_wiki_pages` tool. It requires `owner` and `repo`
 // as parameters and is marked as a safe, read-only operation.
@@ -61,9 +67,53 @@ func (ListWikiPagesImpl) Definition() *mcp.Tool {
 // HTTP GET request to the `/repos/{owner}/{repo}/wiki/pages` endpoint and
 // formats the resulting list of pages into a markdown table. Errors will occur
 // if the repository is not found or authentication fails.
-func (ListWikiPagesImpl) Handler() mcp.ToolHandlerFor[ListWikiPagesParams, any] {
+func (impl ListWikiPagesImpl) Handler() mcp.ToolHandlerFor[ListWikiPagesParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListWikiPagesParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Call custom client method
+		pages, err := impl.Client.MyListWikiPages(p.Owner, p.Repo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list wiki pages: %w", err)
+		}
+
+		// Convert to our types and format
+		var content string
+		if len(pages) == 0 {
+			content = "No wiki pages found in this repository."
+		} else {
+			// Convert pages to our type
+			pageList := make(types.WikiPageList, len(pages))
+			for i, page := range pages {
+				// Map custom page to our type
+				wikiPage := &types.WikiPage{
+					Title:          page.Title,
+					HTMLContentURL: page.HTMLURL,
+					SubURL:         page.SubURL,
+				}
+				// Set last modified time if available
+				if page.LastCommit != nil && page.LastCommit.Author != nil && page.LastCommit.Author.Date != "" {
+					// Try to parse the date string
+					if parsedTime, err := time.Parse(time.RFC3339, page.LastCommit.Author.Date); err == nil {
+						wikiPage.LastModified = parsedTime
+					} else {
+						// Use current time as fallback if parsing fails
+						wikiPage.LastModified = time.Time{}
+					}
+				}
+				pageList[i] = wikiPage
+			}
+
+			content = fmt.Sprintf("Found %d wiki pages\n\n%s",
+				len(pages), pageList.ToMarkdown())
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: content,
+				},
+			},
+		}, nil
 	}
 }

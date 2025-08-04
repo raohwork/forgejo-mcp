@@ -8,12 +8,13 @@ package action
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
+	"github.com/raohwork/forgejo-mcp/types"
 )
 
 // ListActionTasksParams defines the parameters for the list_action_tasks tool.
@@ -32,7 +33,9 @@ type ListActionTasksParams struct {
 // ListActionTasksImpl implements the read-only MCP tool for listing Forgejo Actions tasks.
 // This is a safe, idempotent operation. Note: This feature is not supported by the
 // official Forgejo SDK and requires a custom HTTP implementation.
-type ListActionTasksImpl struct{}
+type ListActionTasksImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `list_action_tasks` tool. It requires `owner` and `repo`
 // and supports various optional parameters for filtering. It is marked as a safe,
@@ -77,9 +80,53 @@ func (ListActionTasksImpl) Definition() *mcp.Tool {
 // Handler implements the logic for listing action tasks. It performs a custom HTTP
 // GET request to the `/repos/{owner}/{repo}/actions/tasks` endpoint and formats
 // the results into a markdown table.
-func (ListActionTasksImpl) Handler() mcp.ToolHandlerFor[ListActionTasksParams, any] {
+func (impl ListActionTasksImpl) Handler() mcp.ToolHandlerFor[ListActionTasksParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListActionTasksParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Call custom client method
+		response, err := impl.Client.MyListActionTasks(p.Owner, p.Repo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list action tasks: %w", err)
+		}
+
+		// Convert to our types and format
+		var content string
+		if response.TotalCount == 0 || len(response.WorkflowRuns) == 0 {
+			content = "No action tasks found in this repository."
+		} else {
+			// Convert tasks to our type
+			taskList := make(types.ActionTaskList, len(response.WorkflowRuns))
+			for i, task := range response.WorkflowRuns {
+				// Map custom task to our type
+				actionTask := &types.ActionTask{
+					ID:         task.ID,
+					Name:       task.Name,
+					Status:     task.Status,
+					CreatedAt:  task.CreatedAt,
+					WorkflowID: 0, // Not available in custom response
+					RunID:      task.RunNumber,
+					JobID:      0, // Not available in custom response
+				}
+				if !task.RunStartedAt.IsZero() {
+					actionTask.StartedAt = &task.RunStartedAt
+				}
+				if !task.UpdatedAt.IsZero() {
+					actionTask.CompletedAt = &task.UpdatedAt
+				}
+				taskList[i] = actionTask
+			}
+
+			content = fmt.Sprintf("Found %d action tasks\n\n%s",
+				response.TotalCount, taskList.ToMarkdown())
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: content,
+				},
+			},
+		}, nil
 	}
 }

@@ -8,12 +8,14 @@ package pullreq
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
+	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
+	"github.com/raohwork/forgejo-mcp/types"
 )
 
 // ListPullRequestsParams defines the parameters for the list_pull_requests tool.
@@ -42,7 +44,9 @@ type ListPullRequestsParams struct {
 // ListPullRequestsImpl implements the read-only MCP tool for listing pull requests.
 // This is a safe, idempotent operation that uses the Forgejo SDK to fetch a list
 // of pull requests with powerful filtering and sorting capabilities.
-type ListPullRequestsImpl struct{}
+type ListPullRequestsImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `list_pull_requests` tool. It requires `owner` and `repo`
 // and supports a rich set of optional parameters for filtering and sorting.
@@ -113,9 +117,55 @@ func (ListPullRequestsImpl) Definition() *mcp.Tool {
 // Handler implements the logic for listing pull requests. It calls the Forgejo SDK's
 // `ListRepoPullRequests` function with the provided filters and formats the results
 // into a markdown table.
-func (ListPullRequestsImpl) Handler() mcp.ToolHandlerFor[ListPullRequestsParams, any] {
+func (impl ListPullRequestsImpl) Handler() mcp.ToolHandlerFor[ListPullRequestsParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListPullRequestsParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Build options for SDK call
+		opt := forgejo.ListPullRequestsOptions{}
+		if p.State != "" {
+			opt.State = forgejo.StateType(p.State)
+		}
+		if p.Sort != "" {
+			opt.Sort = p.Sort
+		}
+		// Note: Direction is not supported in the SDK options
+		// Note: Labels filtering is not directly supported in SDK
+		// Note: Milestone string name is not supported, only ID
+		if p.Page > 0 {
+			opt.Page = p.Page
+		}
+		if p.Limit > 0 {
+			opt.PageSize = p.Limit
+		}
+
+		// Call SDK
+		prs, _, err := impl.Client.ListRepoPullRequests(p.Owner, p.Repo, opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list pull requests: %w", err)
+		}
+
+		// Convert to our types and format
+		var content string
+		if len(prs) == 0 {
+			content = "No pull requests found matching the criteria."
+		} else {
+			// Convert PRs to our type
+			prList := make(types.PullRequestList, len(prs))
+			for i, pr := range prs {
+				prList[i] = &types.PullRequest{PullRequest: pr}
+			}
+
+			content = fmt.Sprintf("Found %d pull requests\n\n%s",
+				len(prs), prList.ToMarkdown())
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: content,
+				},
+			},
+		}, nil
 	}
 }

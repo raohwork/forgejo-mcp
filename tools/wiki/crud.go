@@ -8,12 +8,15 @@ package wiki
 
 import (
 	"context"
-	"errors"
+	"encoding/base64"
+	"fmt"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
+	"github.com/raohwork/forgejo-mcp/types"
 )
 
 // GetWikiPageParams defines the parameters for the get_wiki_page tool.
@@ -31,7 +34,9 @@ type GetWikiPageParams struct {
 // This operation is safe, idempotent, and does not modify any data. Note: This
 // feature is not supported by the official Forgejo SDK and requires a custom
 // HTTP implementation.
-type GetWikiPageImpl struct{}
+type GetWikiPageImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `get_wiki_page` tool. It requires `owner`, `repo`,
 // and `page_name` as parameters and is marked as a safe, read-only operation.
@@ -69,10 +74,44 @@ func (GetWikiPageImpl) Definition() *mcp.Tool {
 // HTTP GET request to the `/repos/{owner}/{repo}/wiki/page/{pageName}` endpoint
 // and formats the resulting page content as markdown. Errors will occur if the
 // page or repository is not found.
-func (GetWikiPageImpl) Handler() mcp.ToolHandlerFor[GetWikiPageParams, any] {
+func (impl GetWikiPageImpl) Handler() mcp.ToolHandlerFor[GetWikiPageParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[GetWikiPageParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Call custom client method
+		page, err := impl.Client.MyGetWikiPage(p.Owner, p.Repo, p.PageName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get wiki page: %w", err)
+		}
+
+		// Decode base64 content
+		content, err := base64.StdEncoding.DecodeString(page.ContentBase64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode page content: %w", err)
+		}
+
+		// Convert to our type and format
+		wikiPage := &types.WikiPage{
+			Title:          page.Title,
+			Content:        string(content),
+			HTMLContentURL: page.HTMLURL,
+			SubURL:         page.SubURL,
+		}
+		// Set last modified time if available
+		if page.LastCommit != nil && page.LastCommit.Author != nil && page.LastCommit.Author.Date != "" {
+			// Try to parse the date string
+			if parsedTime, err := time.Parse(time.RFC3339, page.LastCommit.Author.Date); err == nil {
+				wikiPage.LastModified = parsedTime
+			}
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: wikiPage.ToMarkdown(),
+				},
+			},
+		}, nil
 	}
 }
 
@@ -95,7 +134,9 @@ type CreateWikiPageParams struct {
 // This is a non-idempotent operation that adds a new page to the repository's
 // wiki. Note: This feature is not supported by the official Forgejo SDK and
 // requires a custom HTTP implementation.
-type CreateWikiPageImpl struct{}
+type CreateWikiPageImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `create_wiki_page` tool. It requires `owner`, `repo`,
 // `title`, and `content`. It is not idempotent as multiple calls with the same
@@ -142,10 +183,39 @@ func (CreateWikiPageImpl) Definition() *mcp.Tool {
 // Handler implements the logic for creating a wiki page. It performs a custom
 // HTTP POST request to the `/repos/{owner}/{repo}/wiki/new` endpoint. On success,
 // it returns information about the newly created page.
-func (CreateWikiPageImpl) Handler() mcp.ToolHandlerFor[CreateWikiPageParams, any] {
+func (impl CreateWikiPageImpl) Handler() mcp.ToolHandlerFor[CreateWikiPageParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[CreateWikiPageParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Prepare options for API call
+		options := tools.MyCreateWikiPageOptions{
+			Title:         p.Title,
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte(p.Content)),
+			Message:       p.Message,
+		}
+
+		// Call custom client method
+		page, err := impl.Client.MyCreateWikiPage(p.Owner, p.Repo, options)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create wiki page: %w", err)
+		}
+
+		// Convert to our type and format
+		wikiPage := &types.WikiPage{
+			Title:          page.Title,
+			Content:        p.Content, // Use original content
+			HTMLContentURL: page.HTMLURL,
+			SubURL:         page.SubURL,
+			LastModified:   time.Now(), // Set to current time for new page
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: wikiPage.ToMarkdown(),
+				},
+			},
+		}, nil
 	}
 }
 
@@ -169,7 +239,9 @@ type EditWikiPageParams struct {
 // EditWikiPageImpl implements the MCP tool for editing an existing wiki page.
 // This is an idempotent operation. Note: This feature is not supported by the
 // official Forgejo SDK and requires a custom HTTP implementation.
-type EditWikiPageImpl struct{}
+type EditWikiPageImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `edit_wiki_page` tool. It requires `owner`, `repo`,
 // `page_name`, and new `content`. It is marked as idempotent.
@@ -219,10 +291,43 @@ func (EditWikiPageImpl) Definition() *mcp.Tool {
 // Handler implements the logic for editing a wiki page. It performs a custom
 // HTTP PATCH request to the `/repos/{owner}/{repo}/wiki/page/{pageName}` endpoint.
 // It returns an error if the page is not found.
-func (EditWikiPageImpl) Handler() mcp.ToolHandlerFor[EditWikiPageParams, any] {
+func (impl EditWikiPageImpl) Handler() mcp.ToolHandlerFor[EditWikiPageParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[EditWikiPageParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Prepare options for API call
+		title := p.Title
+		if title == "" {
+			title = p.PageName // Use current name if no new title
+		}
+		options := tools.MyCreateWikiPageOptions{
+			Title:         title,
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte(p.Content)),
+			Message:       p.Message,
+		}
+
+		// Call custom client method
+		page, err := impl.Client.MyEditWikiPage(p.Owner, p.Repo, p.PageName, options)
+		if err != nil {
+			return nil, fmt.Errorf("failed to edit wiki page: %w", err)
+		}
+
+		// Convert to our type and format
+		wikiPage := &types.WikiPage{
+			Title:          page.Title,
+			Content:        p.Content, // Use updated content
+			HTMLContentURL: page.HTMLURL,
+			SubURL:         page.SubURL,
+			LastModified:   time.Now(), // Set to current time for updated page
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: wikiPage.ToMarkdown(),
+				},
+			},
+		}, nil
 	}
 }
 
@@ -240,7 +345,9 @@ type DeleteWikiPageParams struct {
 // DeleteWikiPageImpl implements the destructive MCP tool for deleting a wiki page.
 // This is an idempotent but irreversible operation. Note: This feature is not
 // supported by the official Forgejo SDK and requires a custom HTTP implementation.
-type DeleteWikiPageImpl struct{}
+type DeleteWikiPageImpl struct {
+	Client *tools.Client
+}
 
 // Definition describes the `delete_wiki_page` tool. It requires `owner`, `repo`,
 // and `page_name`. It is marked as a destructive operation to ensure clients
@@ -279,9 +386,25 @@ func (DeleteWikiPageImpl) Definition() *mcp.Tool {
 // Handler implements the logic for deleting a wiki page. It performs a custom
 // HTTP DELETE request to the `/repos/{owner}/{repo}/wiki/page/{pageName}` endpoint.
 // On success, it returns a simple text confirmation.
-func (DeleteWikiPageImpl) Handler() mcp.ToolHandlerFor[DeleteWikiPageParams, any] {
+func (impl DeleteWikiPageImpl) Handler() mcp.ToolHandlerFor[DeleteWikiPageParams, any] {
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[DeleteWikiPageParams]) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler logic
-		return nil, errors.New("not implemented yet")
+		p := params.Arguments
+
+		// Call custom client method
+		err := impl.Client.MyDeleteWikiPage(p.Owner, p.Repo, p.PageName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete wiki page: %w", err)
+		}
+
+		// Return success message
+		emptyResponse := types.EmptyResponse{}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: emptyResponse.ToMarkdown(),
+				},
+			},
+		}, nil
 	}
 }

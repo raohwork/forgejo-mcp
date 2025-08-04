@@ -7,6 +7,9 @@
 package tools
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -45,26 +48,126 @@ import (
 func TestClient_sendSimpleRequest(t *testing.T) {
 	// GET request test - no request body
 	t.Run("GET_success", func(t *testing.T) {
-		// Mock successful GET request
-		// Expected: correctly send GET request and parse JSON response
+		// Mock server
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != "GET" {
+				t.Errorf("Expected GET method, got %s", r.Method)
+			}
+			if r.URL.Path != "/api/v1/repos/owner/repo/issues/1/dependencies" {
+				t.Errorf("Expected specific path, got %s", r.URL.Path)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"id":    1,
+				"title": "Test Issue",
+			})
+		}))
+		defer server.Close()
+
+		client, err := NewClient(server.URL, "test-token", server.Client())
+		if err != nil {
+			t.Fatalf("Failed to create client: %v", err)
+		}
+
+		var result map[string]interface{}
+		err = client.sendSimpleRequest("GET", "/api/v1/repos/owner/repo/issues/1/dependencies", nil, &result)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if result["id"] != float64(1) {
+			t.Errorf("Expected id=1, got %v", result["id"])
+		}
+		if result["title"] != "Test Issue" {
+			t.Errorf("Expected title='Test Issue', got %v", result["title"])
+		}
 	})
 
 	// POST request test - with request body
 	t.Run("POST_success", func(t *testing.T) {
-		// Mock successful POST request
-		// Expected: correctly serialize request body and parse response
+		// Mock server
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != "POST" {
+				t.Errorf("Expected POST method, got %s", r.Method)
+			}
+			if r.Header.Get("Content-Type") != "application/json" {
+				t.Errorf("Expected Content-Type: application/json, got %s", r.Header.Get("Content-Type"))
+			}
+			
+			var reqBody map[string]interface{}
+			json.NewDecoder(r.Body).Decode(&reqBody)
+			if reqBody["index"] != float64(2) {
+				t.Errorf("Expected index=2, got %v", reqBody["index"])
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"message": "dependency added",
+			})
+		}))
+		defer server.Close()
+
+		client, err := NewClient(server.URL, "test-token", server.Client())
+		if err != nil {
+			t.Fatalf("Failed to create client: %v", err)
+		}
+
+		requestData := map[string]interface{}{"index": 2}
+		var result map[string]interface{}
+		err = client.sendSimpleRequest("POST", "/api/v1/repos/owner/repo/issues/1/dependencies", requestData, &result)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if result["message"] != "dependency added" {
+			t.Errorf("Expected message='dependency added', got %v", result["message"])
+		}
 	})
 
 	// HTTP error handling test
 	t.Run("HTTP_error", func(t *testing.T) {
-		// Mock HTTP error response (e.g. 404, 500)
-		// Expected: return appropriate error message
+		// Mock server returning 404
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error": "Not found",
+			})
+		}))
+		defer server.Close()
+
+		client, err := NewClient(server.URL, "test-token", server.Client())
+		if err != nil {
+			t.Fatalf("Failed to create client: %v", err)
+		}
+
+		var result map[string]interface{}
+		err = client.sendSimpleRequest("GET", "/api/v1/repos/owner/repo/nonexistent", nil, &result)
+
+		if err == nil {
+			t.Error("Expected error for 404 response, got nil")
+		}
 	})
 
 	// JSON parsing error test
 	t.Run("JSON_parse_error", func(t *testing.T) {
-		// Mock invalid JSON response
-		// Expected: return JSON parsing error
+		// Mock server returning invalid JSON
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte("invalid json"))
+		}))
+		defer server.Close()
+
+		client, err := NewClient(server.URL, "test-token", server.Client())
+		if err != nil {
+			t.Fatalf("Failed to create client: %v", err)
+		}
+
+		var result map[string]interface{}
+		err = client.sendSimpleRequest("GET", "/api/v1/repos/owner/repo/issues", nil, &result)
+
+		if err == nil {
+			t.Error("Expected JSON parsing error, got nil")
+		}
 	})
 }
 
@@ -102,26 +205,140 @@ func TestClient_sendSimpleRequest(t *testing.T) {
 func TestClient_sendUploadRequest(t *testing.T) {
 	// Successful upload test
 	t.Run("upload_success", func(t *testing.T) {
+		// Mock server
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != "POST" {
+				t.Errorf("Expected POST method, got %s", r.Method)
+			}
+			if !strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
+				t.Errorf("Expected multipart/form-data Content-Type, got %s", r.Header.Get("Content-Type"))
+			}
+			
+			// Parse multipart form
+			err := r.ParseMultipartForm(32 << 20) // 32MB
+			if err != nil {
+				t.Errorf("Failed to parse multipart form: %v", err)
+			}
+			
+			// Check extra fields
+			if r.FormValue("name") != "test.txt" {
+				t.Errorf("Expected name='test.txt', got %s", r.FormValue("name"))
+			}
+			
+			// Check file
+			file, header, err := r.FormFile("attachment")
+			if err != nil {
+				t.Errorf("Failed to get file: %v", err)
+			}
+			defer file.Close()
+			
+			if header.Filename != "test.txt" {
+				t.Errorf("Expected filename='test.txt', got %s", header.Filename)
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"id":       "123",
+				"name":     "test.txt",
+				"download_url": "http://example.com/download/123",
+			})
+		}))
+		defer server.Close()
+
+		client, err := NewClient(server.URL, "test-token", server.Client())
+		if err != nil {
+			t.Fatalf("Failed to create client: %v", err)
+		}
+
 		file := strings.NewReader("test file content")
 		extraFields := map[string]string{"name": "test.txt"}
-
-		// Mock successful file upload
-		// Expected: correctly create multipart request and parse response
+		var result map[string]interface{}
+		
+		err = client.sendUploadRequest("/api/v1/repos/owner/repo/issues/1/assets", "test.txt", file, extraFields, &result)
+		
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if result["id"] != "123" {
+			t.Errorf("Expected id='123', got %v", result["id"])
+		}
+		if result["name"] != "test.txt" {
+			t.Errorf("Expected name='test.txt', got %v", result["name"])
+		}
 	})
 
 	// Empty file upload test
 	t.Run("empty_file", func(t *testing.T) {
-		file := strings.NewReader("")
+		// Mock server
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != "POST" {
+				t.Errorf("Expected POST method, got %s", r.Method)
+			}
+			
+			err := r.ParseMultipartForm(32 << 20)
+			if err != nil {
+				t.Errorf("Failed to parse multipart form: %v", err)
+			}
+			
+			file, header, err := r.FormFile("attachment")
+			if err != nil {
+				t.Errorf("Failed to get file: %v", err)
+			}
+			defer file.Close()
+			
+			if header.Filename != "empty.txt" {
+				t.Errorf("Expected filename='empty.txt', got %s", header.Filename)
+			}
 
-		// Mock empty file upload
-		// Expected: should handle empty file situation
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"id":   "124",
+				"name": "empty.txt",
+			})
+		}))
+		defer server.Close()
+
+		client, err := NewClient(server.URL, "test-token", server.Client())
+		if err != nil {
+			t.Fatalf("Failed to create client: %v", err)
+		}
+
+		file := strings.NewReader("")
+		var result map[string]interface{}
+		
+		err = client.sendUploadRequest("/api/v1/repos/owner/repo/issues/1/assets", "empty.txt", file, nil, &result)
+		
+		if err != nil {
+			t.Errorf("Expected no error for empty file, got %v", err)
+		}
+		if result["id"] != "124" {
+			t.Errorf("Expected id='124', got %v", result["id"])
+		}
 	})
 
-	// Upload error test
+	// Upload error test  
 	t.Run("upload_error", func(t *testing.T) {
-		file := strings.NewReader("test content")
+		// Mock server returning 500 error
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error": "Internal server error",
+			})
+		}))
+		defer server.Close()
 
-		// Mock upload failure (e.g. server error)
-		// Expected: return appropriate error message
+		client, err := NewClient(server.URL, "test-token", server.Client())
+		if err != nil {
+			t.Fatalf("Failed to create client: %v", err)
+		}
+
+		file := strings.NewReader("test content")
+		var result map[string]interface{}
+		
+		err = client.sendUploadRequest("/api/v1/repos/owner/repo/issues/1/assets", "test.txt", file, nil, &result)
+		
+		if err == nil {
+			t.Error("Expected error for 500 response, got nil")
+		}
 	})
 }

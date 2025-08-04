@@ -37,6 +37,16 @@
 
 ### Issue 相關功能 🔴
 
+- **列出 Repository Issues** 🟢
+  - `GET /repos/{owner}/{repo}/issues`
+  - SDK: `ListRepoIssues(owner, repo string, opt ListIssueOption) ([]*Issue, *Response, error)`
+  - 支援篩選: state, labels, milestones, assignees, search, date filters
+- **取得特定 Issue 詳細資訊** 🟢
+  - `GET /repos/{owner}/{repo}/issues/{index}`
+  - SDK: `GetIssue(owner, repo string, index int64) (*Issue, *Response, error)`
+- **列出 Issue 評論** 🟢
+  - `GET /repos/{owner}/{repo}/issues/{index}/comments`
+  - SDK: `ListIssueComments(owner, repo string, index int64, opt ListIssueCommentOptions) ([]*Comment, *Response, error)`
 - **建立新的 issue** 🟢
   - `POST /repos/{owner}/{repo}/issues`
   - SDK: `CreateIssue(owner, repo string, opt CreateIssueOption) (*Issue, *Response, error)`
@@ -69,6 +79,12 @@
     - Custom: SDK 無支援，需自訂 HTTP 請求
     - **移除依賴:** `DELETE /repos/{owner}/{repo}/issues/{index}/dependencies/{dependency_index}`
     - Custom: SDK 無支援，需自訂 HTTP 請求
+- **編輯 Issue 評論** 🟢
+  - `PATCH /repos/{owner}/{repo}/issues/comments/{id}`
+  - SDK: `EditIssueComment(owner, repo string, commentID int64, opt EditIssueCommentOption) (*Comment, *Response, error)`
+- **刪除 Issue 評論** 🟢
+  - `DELETE /repos/{owner}/{repo}/issues/comments/{id}`
+  - SDK: `DeleteIssueComment(owner, repo string, commentID int64) (*Response, error)`
 - **附件管理** 🟡
   - **列出附件:** `GET /repos/{owner}/{repo}/issues/{index}/attachments`
   - Custom: SDK 無支援，需自訂 HTTP 請求
@@ -134,6 +150,9 @@
   - SDK: `ListMyRepos(opt ListReposOptions) ([]*Repository, *Response, error)`
   - `GET /orgs/{org}/repos`
   - SDK: `ListOrgRepos(org string, opt ListOrgReposOptions) ([]*Repository, *Response, error)`
+- **取得特定 Repository 資訊** 🟢
+  - `GET /repos/{owner}/{repo}`
+  - SDK: `GetRepo(owner, repo string) (*Repository, *Response, error)`
 
 ### Forgejo Actions (CI/CD) 🟡
 

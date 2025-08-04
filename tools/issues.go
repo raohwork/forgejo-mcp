@@ -13,6 +13,155 @@ import (
 
 // Issue related tools
 
+func ListRepoIssues() mcp.Tool {
+	return mcp.Tool{
+		Name:        "list_repo_issues",
+		Title:       "List Repository Issues",
+		Description: "List issues in a repository with optional filtering by state, labels, milestones, assignees, and search terms.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint:   true,
+			IdempotentHint: true,
+		},
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"owner": {
+					Type:        "string",
+					Description: "Repository owner (username or organization name)",
+				},
+				"repo": {
+					Type:        "string",
+					Description: "Repository name",
+				},
+				"state": {
+					Type:        "string",
+					Description: "Issue state filter: 'open', 'closed', or 'all' (optional, defaults to 'open')",
+					Enum:        []any{"open", "closed", "all"},
+				},
+				"labels": {
+					Type:        "string",
+					Description: "Comma-separated list of label names to filter by (optional)",
+				},
+				"milestones": {
+					Type:        "string",
+					Description: "Comma-separated list of milestone names or IDs to filter by (optional)",
+				},
+				"assignees": {
+					Type:        "string",
+					Description: "Comma-separated list of usernames to filter by assignee (optional)",
+				},
+				"q": {
+					Type:        "string",
+					Description: "Search query string to filter issues (optional)",
+				},
+				"sort": {
+					Type:        "string",
+					Description: "Sort field: 'created', 'updated', 'comments' (optional, defaults to 'created')",
+					Enum:        []any{"created", "updated", "comments"},
+				},
+				"order": {
+					Type:        "string",
+					Description: "Sort order: 'asc' or 'desc' (optional, defaults to 'desc')",
+					Enum:        []any{"asc", "desc"},
+				},
+				"page": {
+					Type:        "integer",
+					Description: "Page number for pagination (optional, defaults to 1)",
+					Minimum:     float64Ptr(1),
+				},
+				"limit": {
+					Type:        "integer",
+					Description: "Number of issues per page (optional, defaults to 20, max 50)",
+					Minimum:     float64Ptr(1),
+					Maximum:     float64Ptr(50),
+				},
+			},
+			Required: []string{"owner", "repo"},
+		},
+	}
+}
+
+func GetIssue() mcp.Tool {
+	return mcp.Tool{
+		Name:        "get_issue",
+		Title:       "Get Issue Details",
+		Description: "Get detailed information about a specific issue, including title, body, state, assignees, labels, and metadata.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint:   true,
+			IdempotentHint: true,
+		},
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"owner": {
+					Type:        "string",
+					Description: "Repository owner (username or organization name)",
+				},
+				"repo": {
+					Type:        "string",
+					Description: "Repository name",
+				},
+				"index": {
+					Type:        "integer",
+					Description: "Issue index number",
+				},
+			},
+			Required: []string{"owner", "repo", "index"},
+		},
+	}
+}
+
+func ListIssueComments() mcp.Tool {
+	return mcp.Tool{
+		Name:        "list_issue_comments",
+		Title:       "List Issue Comments",
+		Description: "List all comments on a specific issue, including comment body, author, and timestamps.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint:   true,
+			IdempotentHint: true,
+		},
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"owner": {
+					Type:        "string",
+					Description: "Repository owner (username or organization name)",
+				},
+				"repo": {
+					Type:        "string",
+					Description: "Repository name",
+				},
+				"index": {
+					Type:        "integer",
+					Description: "Issue index number",
+				},
+				"since": {
+					Type:        "string",
+					Description: "Only show comments updated after this time (ISO 8601 format) (optional)",
+					Format:      "date-time",
+				},
+				"before": {
+					Type:        "string",
+					Description: "Only show comments updated before this time (ISO 8601 format) (optional)",
+					Format:      "date-time",
+				},
+				"page": {
+					Type:        "integer",
+					Description: "Page number for pagination (optional, defaults to 1)",
+					Minimum:     float64Ptr(1),
+				},
+				"limit": {
+					Type:        "integer",
+					Description: "Number of comments per page (optional, defaults to 20, max 50)",
+					Minimum:     float64Ptr(1),
+					Maximum:     float64Ptr(50),
+				},
+			},
+			Required: []string{"owner", "repo", "index"},
+		},
+	}
+}
+
 func CreateIssue() mcp.Tool {
 	return mcp.Tool{
 		Name:        "create_issue",
@@ -521,6 +670,72 @@ func AddIssueDependency() mcp.Tool {
 				},
 			},
 			Required: []string{"owner", "repo", "index", "dependency_index"},
+		},
+	}
+}
+
+func EditIssueComment() mcp.Tool {
+	return mcp.Tool{
+		Name:        "edit_issue_comment",
+		Title:       "Edit Issue Comment",
+		Description: "Edit an existing comment on an issue. You can modify the comment body content.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint:    false,
+			DestructiveHint: boolPtr(false),
+			IdempotentHint:  true,
+		},
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"owner": {
+					Type:        "string",
+					Description: "Repository owner (username or organization name)",
+				},
+				"repo": {
+					Type:        "string",
+					Description: "Repository name",
+				},
+				"comment_id": {
+					Type:        "integer",
+					Description: "Comment ID to edit",
+				},
+				"body": {
+					Type:        "string",
+					Description: "New comment body content (markdown supported)",
+				},
+			},
+			Required: []string{"owner", "repo", "comment_id", "body"},
+		},
+	}
+}
+
+func DeleteIssueComment() mcp.Tool {
+	return mcp.Tool{
+		Name:        "delete_issue_comment",
+		Title:       "Delete Issue Comment",
+		Description: "Delete a specific comment from an issue. This action cannot be undone.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint:    false,
+			DestructiveHint: boolPtr(true),
+			IdempotentHint:  true,
+		},
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"owner": {
+					Type:        "string",
+					Description: "Repository owner (username or organization name)",
+				},
+				"repo": {
+					Type:        "string",
+					Description: "Repository name",
+				},
+				"comment_id": {
+					Type:        "integer",
+					Description: "Comment ID to delete",
+				},
+			},
+			Required: []string{"owner", "repo", "comment_id"},
 		},
 	}
 }

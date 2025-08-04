@@ -37,6 +37,16 @@ Labels available for a specific repository
 
 ### Issue Features 🔴
 
+- **List Repository Issues** 🟢
+  - `GET /repos/{owner}/{repo}/issues`
+  - SDK: `ListRepoIssues(owner, repo string, opt ListIssueOption) ([]*Issue, *Response, error)`
+  - Supports filters: state, labels, milestones, assignees, search, date filters
+- **Get Specific Issue Details** 🟢
+  - `GET /repos/{owner}/{repo}/issues/{index}`
+  - SDK: `GetIssue(owner, repo string, index int64) (*Issue, *Response, error)`
+- **List Issue Comments** 🟢
+  - `GET /repos/{owner}/{repo}/issues/{index}/comments`
+  - SDK: `ListIssueComments(owner, repo string, index int64, opt ListIssueCommentOptions) ([]*Comment, *Response, error)`
 - **Create new issue** 🟢
   - `POST /repos/{owner}/{repo}/issues`
   - SDK: `CreateIssue(owner, repo string, opt CreateIssueOption) (*Issue, *Response, error)`
@@ -69,6 +79,12 @@ Labels available for a specific repository
     - Custom: Not supported by SDK, requires custom HTTP request
     - **Remove dependency:** `DELETE /repos/{owner}/{repo}/issues/{index}/dependencies/{dependency_index}`
     - Custom: Not supported by SDK, requires custom HTTP request
+- **Edit Issue Comments** 🟢
+  - `PATCH /repos/{owner}/{repo}/issues/comments/{id}`
+  - SDK: `EditIssueComment(owner, repo string, commentID int64, opt EditIssueCommentOption) (*Comment, *Response, error)`
+- **Delete Issue Comments** 🟢
+  - `DELETE /repos/{owner}/{repo}/issues/comments/{id}`
+  - SDK: `DeleteIssueComment(owner, repo string, commentID int64) (*Response, error)`
 - **Attachment management** 🟡
   - **List attachments:** `GET /repos/{owner}/{repo}/issues/{index}/attachments`
   - Custom: Not supported by SDK, requires custom HTTP request
@@ -134,6 +150,9 @@ Labels available for a specific repository
   - SDK: `ListMyRepos(opt ListReposOptions) ([]*Repository, *Response, error)`
   - `GET /orgs/{org}/repos`
   - SDK: `ListOrgRepos(org string, opt ListOrgReposOptions) ([]*Repository, *Response, error)`
+- **Get Specific Repository Information** 🟢
+  - `GET /repos/{owner}/{repo}`
+  - SDK: `GetRepo(owner, repo string) (*Repository, *Response, error)`
 
 ### Forgejo Actions (CI/CD) 🟡
 

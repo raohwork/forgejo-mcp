@@ -160,3 +160,29 @@ func ListOrgRepositories() mcp.Tool {
 		},
 	}
 }
+
+func GetRepository() mcp.Tool {
+	return mcp.Tool{
+		Name:        "get_repository",
+		Title:       "Get Repository Information",
+		Description: "Get detailed information about a specific repository, including description, stats, permissions, and metadata.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint:   true,
+			IdempotentHint: true,
+		},
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"owner": {
+					Type:        "string",
+					Description: "Repository owner (username or organization name)",
+				},
+				"repo": {
+					Type:        "string",
+					Description: "Repository name",
+				},
+			},
+			Required: []string{"owner", "repo"},
+		},
+	}
+}

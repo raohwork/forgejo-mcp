@@ -110,13 +110,13 @@ func (atl ActionTaskList) ToMarkdown() string {
 type MyActionTask struct {
 	ID           int64     `json:"id"`
 	Name         string    `json:"name"`
-	DisplayTitle string    `json:"display_title"`
+	DisplayTitle string    `json:"display_title"` // title of last commit
 	Status       string    `json:"status"`
-	Event        string    `json:"event"`
-	WorkflowID   string    `json:"workflow_id"`
+	Event        string    `json:"event"`       //push, pull_request, etc.
+	WorkflowID   string    `json:"workflow_id"` // filename of yaml
 	HeadBranch   string    `json:"head_branch"`
 	HeadSHA      string    `json:"head_sha"`
-	RunNumber    int64     `json:"run_number"`
+	RunNumber    int64     `json:"run_number"` // run#N
 	URL          string    `json:"url"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`

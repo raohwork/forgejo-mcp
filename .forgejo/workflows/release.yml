@@ -1,0 +1,62 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: any
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
+      with:
+        go-version: ">=1.23"
+
+    - name: Restore cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Run test
+      run: go test -v ./...
+
+    - name: Build for amd64 linux
+      run: |
+        GOARCH=amd64 GOOS=linux go build -o forgejo-mcp.amd64
+        sha1sum forgejo-mcp.amd64 > forgejo-mcp.amd64.sha1
+    - name: Build for arm64 linux
+      run: |
+        GOARCH=arm64 GOOS=linux go build -o forgejo-mcp.arm64
+        sha1sum forgejo-mcp.arm64 > forgejo-mcp.arm64.sha1
+    - name: Build for amd64 windows
+      run: |
+        GOARCH=amd64 GOOS=windows go build -o forgejo-mcp.amd64.exe
+        sha1sum forgejo-mcp.amd64.exe > forgejo-mcp.amd64.exe.sha1
+    - name: Build for arm64 windows
+      run: |
+        GOARCH=arm64 GOOS=windows go build -o forgejo-mcp.arm64.exe
+        sha1sum forgejo-mcp.arm64.exe > forgejo-mcp.arm64.exe.sha1
+
+    - name: Create Release
+      uses: https://github.com/softprops/action-gh-release@v1
+      with:
+        files: |
+          forgejo-mcp.amd64
+          forgejo-mcp.arm64
+          forgejo-mcp.amd64.exe
+          forgejo-mcp.arm64.exe
+          forgejo-mcp.amd64.sha1
+          forgejo-mcp.arm64.sha1
+          forgejo-mcp.amd64.exe.sha1
+          forgejo-mcp.arm64.exe.sha1
+        token: ${{ secrets.FORGEJO_AUTH_TOKEN }}

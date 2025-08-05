@@ -624,6 +624,29 @@ func (idl IssueDependencyList) ToMarkdown() string {
 	return markdown
 }
 
+// MyActionTask represents a Forgejo Actions task.
+type MyActionTask struct {
+	ID           int64     `json:"id"`
+	Name         string    `json:"name"`
+	DisplayTitle string    `json:"display_title"`
+	Status       string    `json:"status"`
+	Event        string    `json:"event"`
+	WorkflowID   string    `json:"workflow_id"`
+	HeadBranch   string    `json:"head_branch"`
+	HeadSHA      string    `json:"head_sha"`
+	RunNumber    int64     `json:"run_number"`
+	URL          string    `json:"url"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	RunStartedAt time.Time `json:"run_started_at"`
+}
+
+// MyActionTaskResponse represents the response for listing action tasks.
+type MyActionTaskResponse struct {
+	TotalCount   int64           `json:"total_count"`
+	WorkflowRuns []*MyActionTask `json:"workflow_runs"`
+}
+
 // EmptyResponse represents an empty response for endpoints that don't return data
 // Used by endpoints that only return status codes:
 // - DELETE /repos/{owner}/{repo}/labels/{id}

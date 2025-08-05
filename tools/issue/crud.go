@@ -9,6 +9,7 @@ package issue
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
@@ -137,10 +138,10 @@ func (impl ListRepoIssuesImpl) Handler() mcp.ToolHandlerFor[ListRepoIssuesParams
 			opt.State = forgejo.StateType(p.State)
 		}
 		if p.Labels != "" {
-			opt.Labels = []string{p.Labels}
+			opt.Labels = strings.Split(p.Labels, ",")
 		}
 		if p.Milestones != "" {
-			opt.Milestones = []string{p.Milestones}
+			opt.Milestones = strings.Split(p.Milestones, ",")
 		}
 		if p.Q != "" {
 			opt.KeyWord = p.Q

@@ -95,26 +95,9 @@ func (impl ListActionTasksImpl) Handler() mcp.ToolHandlerFor[ListActionTasksPara
 		if response.TotalCount == 0 || len(response.WorkflowRuns) == 0 {
 			content = "No action tasks found in this repository."
 		} else {
-			// Convert tasks to our type
-			taskList := make(types.ActionTaskList, len(response.WorkflowRuns))
-			for i, task := range response.WorkflowRuns {
-				// Map custom task to our type
-				actionTask := &types.ActionTask{
-					ID:         task.ID,
-					Name:       task.Name,
-					Status:     task.Status,
-					CreatedAt:  task.CreatedAt,
-					WorkflowID: 0, // Not available in custom response
-					RunID:      task.RunNumber,
-					JobID:      0, // Not available in custom response
-				}
-				if !task.RunStartedAt.IsZero() {
-					actionTask.StartedAt = &task.RunStartedAt
-				}
-				if !task.UpdatedAt.IsZero() {
-					actionTask.CompletedAt = &task.UpdatedAt
-				}
-				taskList[i] = actionTask
+			// Convert response to our type
+			taskList := types.ActionTaskList{
+				MyActionTaskResponse: response,
 			}
 
 			content = fmt.Sprintf("Found %d action tasks\n\n%s",

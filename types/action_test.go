@@ -11,45 +11,52 @@ import (
 	"time"
 )
 
-func TestActionTask_ToMarkdown(t *testing.T) {
-	started := testTime()
-	completed := started.Add(2 * time.Minute)
+func TestMyActionTask_ToMarkdown(t *testing.T) {
+	createdTime := testTime()
+	startedTime := createdTime.Add(1 * time.Minute)
+	updatedTime := startedTime.Add(5 * time.Minute)
+	
 	tests := []struct {
 		name     string
-		task     *ActionTask
+		task     *MyActionTask
 		required []string
 	}{
 		{
 			name: "complete action task with all fields",
-			task: &ActionTask{
-				Name:        "Build and Test",
-				Status:      "success",
-				RunID:       123,
-				JobID:       456,
-				StartedAt:   &started,
-				CompletedAt: &completed,
-				Steps: []ActionTaskStep{
-					{
-						Name:   "Setup Go",
-						Status: "success",
-					},
-					{
-						Name:   "Run Tests",
-						Status: "success",
-					},
-				},
+			task: &MyActionTask{
+				DisplayTitle: "Add new feature",
+				Status:       "success",
+				RunNumber:    123,
+				WorkflowID:   "ci.yml",
+				HeadBranch:   "main",
+				Event:        "push",
+				CreatedAt:    createdTime,
+				RunStartedAt: startedTime,
+				UpdatedAt:    updatedTime,
 			},
-			required: []string{"Build and Test", "success", "Run ID: 123", "Job ID: 456", "Started: 2024-01-15 14:30", "Duration: 2m0s", "Setup Go", "Run Tests"},
+			required: []string{"Add new feature", "success", "Run #123", "Created: 2024-01-15 14:30", "Duration: 5m0s"},
 		},
 		{
-			name: "minimal action task",
-			task: &ActionTask{
-				Name:   "Simple Task",
-				Status: "running",
-				RunID:  789,
-				JobID:  101,
+			name: "failed action task with minimal timing",
+			task: &MyActionTask{
+				DisplayTitle: "Fix bug in authentication",
+				Status:       "failure",
+				RunNumber:    456,
+				WorkflowID:   "test.yml",
+				HeadBranch:   "feature/auth-fix",
+				Event:        "pull_request",
+				CreatedAt:    createdTime,
 			},
-			required: []string{"Simple Task", "running", "Run ID: 789", "Job ID: 101"},
+			required: []string{"Fix bug in authentication", "failure", "Run #456", "Created: 2024-01-15 14:30"},
+		},
+		{
+			name: "running task without timing",
+			task: &MyActionTask{
+				DisplayTitle: "Deploy to staging",
+				Status:       "running",
+				RunNumber:    789,
+			},
+			required: []string{"Deploy to staging", "running", "Run #789"},
 		},
 	}
 
@@ -61,45 +68,8 @@ func TestActionTask_ToMarkdown(t *testing.T) {
 	}
 }
 
-func TestActionTaskStep_ToMarkdown(t *testing.T) {
-	started := testTime()
-	completed := started.Add(30 * time.Second)
-	tests := []struct {
-		name     string
-		step     *ActionTaskStep
-		required []string
-	}{
-		{
-			name: "complete action task step with all fields",
-			step: &ActionTaskStep{
-				Name:        "Run Tests",
-				Status:      "success",
-				Conclusion:  "passed",
-				StartedAt:   &started,
-				CompletedAt: &completed,
-			},
-			required: []string{"Run Tests", "success", "passed", "30s"},
-		},
-		{
-			name: "minimal action task step",
-			step: &ActionTaskStep{
-				Name:   "Simple Step",
-				Status: "running",
-			},
-			required: []string{"Simple Step", "running"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			output := tt.step.ToMarkdown()
-			assertContains(t, output, tt.required)
-		})
-	}
-}
 
 func TestActionTaskList_ToMarkdown(t *testing.T) {
-	started := testTime()
 	tests := []struct {
 		name     string
 		tasks    ActionTaskList
@@ -108,24 +78,38 @@ func TestActionTaskList_ToMarkdown(t *testing.T) {
 		{
 			name: "multiple action tasks with complete information",
 			tasks: ActionTaskList{
-				&ActionTask{
-					Name:      "Build and Test",
-					Status:    "success",
-					RunID:     123,
-					JobID:     456,
-					StartedAt: &started,
-				},
-				&ActionTask{
-					Name:   "Deploy",
-					Status: "running",
-					RunID:  124,
-					JobID:  457,
+				MyActionTaskResponse: &MyActionTaskResponse{
+					TotalCount: 2,
+					WorkflowRuns: []*MyActionTask{
+						{
+							DisplayTitle: "Add new feature",
+							Status:       "success",
+							RunNumber:    123,
+							WorkflowID:   "ci.yml",
+						},
+						{
+							DisplayTitle: "Fix authentication bug",
+							Status:       "failure",
+							RunNumber:    124,
+							WorkflowID:   "test.yml",
+						},
+					},
 				},
 			},
-			required: []string{"1.", "Build and Test", "success", "2.", "Deploy", "running"},
+			required: []string{"1.", "Add new feature", "success", "Run #123", "2.", "Fix authentication bug", "failure", "Run #124"},
 		},
 		{
-			name:     "empty action task list",
+			name: "empty action task list",
+			tasks: ActionTaskList{
+				MyActionTaskResponse: &MyActionTaskResponse{
+					TotalCount:   0,
+					WorkflowRuns: []*MyActionTask{},
+				},
+			},
+			required: []string{"No action tasks found"},
+		},
+		{
+			name:     "nil response",
 			tasks:    ActionTaskList{},
 			required: []string{"No action tasks found"},
 		},

@@ -7,9 +7,14 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"os"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/raohwork/forgejo-mcp/tools"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // stdioCmd represents the stdio command
@@ -27,7 +32,33 @@ This transport mode is ideal for:
 Example:
   forgejo-mcp stdio --server https://git.example.com --token your_token`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("stdio called")
+		base := viper.GetString("server")
+		token := viper.GetString("token")
+
+		if base == "" || token == "" {
+			cmd.Help()
+			os.Exit(1)
+		}
+
+		server := mcp.NewServer(&mcp.Implementation{
+			Title:   "Forgejo MCP Server",
+			Version: "0.0.1",
+		}, &mcp.ServerOptions{
+			PageSize:     50,
+			Instructions: "An MCP server to interact with repositories on a Forgejo instance.",
+		})
+		cl, err := tools.NewClient(base, token, "", nil)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating SDK client: %v\n", err)
+			os.Exit(1)
+		}
+		registerCommands(server, cl)
+
+		err = server.Run(context.TODO(), mcp.NewStdioTransport())
+		fmt.Fprintf(os.Stderr, "Server exited with error: %v\n", err)
+		if err != nil {
+			os.Exit(1)
+		}
 	},
 }
 

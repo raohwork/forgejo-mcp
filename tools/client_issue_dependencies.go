@@ -10,19 +10,13 @@ import (
 	"fmt"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
-)
 
-// MyIssueMeta represents basic issue information for dependency operations.
-// This type is not available in the Forgejo SDK.
-type MyIssueMeta struct {
-	Index int64  `json:"index"`
-	Owner string `json:"owner,omitempty"`
-	Name  string `json:"repo,omitempty"`
-}
+	"github.com/raohwork/forgejo-mcp/types"
+)
 
 // MyAddIssueDependency adds a dependency to an issue.
 // POST /repos/{owner}/{repo}/issues/{index}/dependencies
-func (c *Client) MyAddIssueDependency(owner, repo string, index int64, dependency MyIssueMeta) (*forgejo.Issue, error) {
+func (c *Client) MyAddIssueDependency(owner, repo string, index int64, dependency types.MyIssueMeta) (*forgejo.Issue, error) {
 	endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/dependencies", owner, repo, index)
 
 	var result forgejo.Issue
@@ -50,7 +44,7 @@ func (c *Client) MyListIssueDependencies(owner, repo string, index int64) ([]*fo
 
 // MyRemoveIssueDependency removes a dependency from an issue.
 // DELETE /repos/{owner}/{repo}/issues/{index}/dependencies
-func (c *Client) MyRemoveIssueDependency(owner, repo string, index int64, dependency MyIssueMeta) (*forgejo.Issue, error) {
+func (c *Client) MyRemoveIssueDependency(owner, repo string, index int64, dependency types.MyIssueMeta) (*forgejo.Issue, error) {
 	endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/dependencies", owner, repo, index)
 
 	var result forgejo.Issue

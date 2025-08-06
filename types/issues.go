@@ -91,36 +91,6 @@ func (c *Comment) ToMarkdown() string {
 	return markdown
 }
 
-// IssueDependency represents an issue dependency response (custom implementation as SDK doesn't support)
-// Used by endpoints:
-// - POST /repos/{owner}/{repo}/issues/{index}/dependencies
-type IssueDependency struct {
-	ID           int64  `json:"id"`
-	IssueID      int64  `json:"issue_id"`
-	DependencyID int64  `json:"dependency_id"`
-	CreatedUnix  int64  `json:"created_unix"`
-	Issue        *Issue `json:"issue,omitempty"`
-	Dependency   *Issue `json:"dependency,omitempty"`
-}
-
-// ToMarkdown renders issue dependency with issue titles and numbers
-// Example: #123 Fix login bug depends on #45 Update authentication library
-func (id *IssueDependency) ToMarkdown() string {
-	markdown := ""
-	if id.Issue != nil {
-		markdown += fmt.Sprintf("#%d %s", id.Issue.Index, id.Issue.Title)
-	} else {
-		markdown += fmt.Sprintf("Issue #%d", id.IssueID)
-	}
-	markdown += " depends on "
-	if id.Dependency != nil {
-		markdown += fmt.Sprintf("#%d %s", id.Dependency.Index, id.Dependency.Title)
-	} else {
-		markdown += fmt.Sprintf("Issue #%d", id.DependencyID)
-	}
-	return markdown
-}
-
 // IssueList represents a list of issues optimized for list display
 // Used by list_repo_issues endpoint to show essential information only
 type IssueList []*forgejo.Issue
@@ -172,23 +142,5 @@ func (il IssueList) ToMarkdown() string {
 		markdown += line + "\n"
 	}
 
-	return markdown
-}
-
-// IssueDependencyList represents a list of issue dependencies response
-type IssueDependencyList []*IssueDependency
-
-// ToMarkdown renders issue dependencies as a bullet list
-// Example:
-// - #123 Fix login bug depends on #45 Update authentication library
-// - #124 Add user profile depends on #46 Database migration
-func (idl IssueDependencyList) ToMarkdown() string {
-	if len(idl) == 0 {
-		return "*No issue dependencies found*"
-	}
-	markdown := ""
-	for _, dep := range idl {
-		markdown += "- " + dep.ToMarkdown() + "\n"
-	}
 	return markdown
 }

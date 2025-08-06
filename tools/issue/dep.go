@@ -79,17 +79,8 @@ func (impl ListIssueDependenciesImpl) Handler() mcp.ToolHandlerFor[ListIssueDepe
 			return nil, fmt.Errorf("failed to list dependencies: %w", err)
 		}
 
-		var content string
-		if len(issues) == 0 {
-			content = "No dependencies found for this issue."
-		} else {
-			var issuesMarkdown string
-			for _, issue := range issues {
-				issueWrapper := &types.Issue{Issue: issue}
-				issuesMarkdown += issueWrapper.ToMarkdown() + "\n\n---\n\n"
-			}
-			content = fmt.Sprintf("Found %d dependencies for issue #%d\n\n%s", len(issues), p.Index, issuesMarkdown)
-		}
+		dependencies := types.IssueDependencyList(issues)
+		content := fmt.Sprintf("## Issues that block #%d\n\n%s", p.Index, dependencies.ToMarkdown())
 
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{

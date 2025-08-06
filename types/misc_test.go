@@ -12,50 +12,6 @@ import (
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 )
 
-func TestIssueDependency_ToMarkdown(t *testing.T) {
-	tests := []struct {
-		name       string
-		dependency *IssueDependency
-		required   []string
-	}{
-		{
-			name: "complete issue dependency with both issues",
-			dependency: &IssueDependency{
-				IssueID:      123,
-				DependencyID: 45,
-				Issue: &Issue{
-					Issue: &forgejo.Issue{
-						Index: 123,
-						Title: "Fix login bug",
-					},
-				},
-				Dependency: &Issue{
-					Issue: &forgejo.Issue{
-						Index: 45,
-						Title: "Update authentication library",
-					},
-				},
-			},
-			required: []string{"#123", "Fix login bug", "depends on", "#45", "Update authentication library"},
-		},
-		{
-			name: "issue dependency with only IDs",
-			dependency: &IssueDependency{
-				IssueID:      123,
-				DependencyID: 45,
-			},
-			required: []string{"Issue #123", "depends on", "Issue #45"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			output := tt.dependency.ToMarkdown()
-			assertContains(t, output, tt.required)
-		})
-	}
-}
-
 func TestIssueDependencyList_ToMarkdown(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -65,21 +21,23 @@ func TestIssueDependencyList_ToMarkdown(t *testing.T) {
 		{
 			name: "multiple issue dependencies",
 			dependencies: IssueDependencyList{
-				&IssueDependency{
-					IssueID:      123,
-					DependencyID: 45,
+				&forgejo.Issue{
+					Index: 123,
+					Title: "Fix authentication bug",
+					State: "open",
 				},
-				&IssueDependency{
-					IssueID:      124,
-					DependencyID: 46,
+				&forgejo.Issue{
+					Index: 45,
+					Title: "Update user model",
+					State: "closed",
 				},
 			},
-			required: []string{"Issue #123", "depends on", "Issue #45", "Issue #124", "Issue #46"},
+			required: []string{"#123", "**Fix authentication bug**", "(open)", "#45", "**Update user model**", "(closed)"},
 		},
 		{
 			name:         "empty dependency list",
 			dependencies: IssueDependencyList{},
-			required:     []string{"No issue dependencies found"},
+			required:     []string{"*No issue dependencies found*"},
 		},
 	}
 

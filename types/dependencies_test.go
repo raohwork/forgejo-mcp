@@ -49,6 +49,43 @@ func TestIssueDependencyList_ToMarkdown(t *testing.T) {
 	}
 }
 
+func TestIssueBlockingList_ToMarkdown(t *testing.T) {
+	tests := []struct {
+		name     string
+		blocking IssueBlockingList
+		required []string
+	}{
+		{
+			name: "multiple issue blocking",
+			blocking: IssueBlockingList{
+				&forgejo.Issue{
+					Index: 234,
+					Title: "Update user interface",
+					State: "open",
+				},
+				&forgejo.Issue{
+					Index: 567,
+					Title: "Add new feature",
+					State: "closed",
+				},
+			},
+			required: []string{"#234", "**Update user interface**", "(open)", "#567", "**Add new feature**", "(closed)"},
+		},
+		{
+			name:     "empty blocking list",
+			blocking: IssueBlockingList{},
+			required: []string{"*This issue is not blocking any other issues*"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := tt.blocking.ToMarkdown()
+			assertContains(t, output, tt.required)
+		})
+	}
+}
+
 func TestEmptyResponse_ToMarkdown(t *testing.T) {
 	tests := []struct {
 		name     string

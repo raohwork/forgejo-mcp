@@ -83,7 +83,7 @@
     - [x] 實作 `Handler()` 方法，輸出標頭為 `"## Issues blocked by #%d"`
     - [x] 使用 `IssueBlockingList.ToMarkdown()` 進行格式化
     - [x] 檢查編譯和基本功能測試
-- [ ] 人工審查
+- [x] 人工審查
 - [x] **第四階段：實作 MCP 工具 - Add/Remove**
     - [x] 在 `tools/issue/dep.go` 新增 `AddIssueBlockingImpl` 和 `RemoveIssueBlockingImpl`
     - [x] 實作對應的 `Definition()` 方法，工具名稱為 `add_issue_blocking` 和 `remove_issue_blocking`
@@ -96,13 +96,13 @@
 - [x] **第五階段：註冊工具到 MCP**
     - [x] 在 `cmd/lib.go` 的工具註冊列表中新增三個新工具
     - [x] 檢查完整編譯和工具可用性
-- [ ] 人工審查
-- [ ] **第六階段：測試與驗證**
-    - [ ] 新增對應測試到 `types/misc_test.go` 測試 `IssueBlockingList.ToMarkdown()`
-    - [ ] 把 `types/misc_test.go` 改名為 `types/dependencies_test.go`
-    - [ ] 執行 `go test ./...` 確保所有測試通過
-    - [ ] 執行 `go build ./...` 確保完整編譯成功
-- [ ] 人工審查
+- [x] 人工審查
+- [x] **第六階段：測試與驗證**
+    - [x] 新增對應測試到 `types/misc_test.go` 測試 `IssueBlockingList.ToMarkdown()`
+    - [x] 把 `types/misc_test.go` 改名為 `types/dependencies_test.go`
+    - [x] 執行 `go test ./...` 確保所有測試通過
+    - [x] 執行 `go build ./...` 確保完整編譯成功
+- [x] 人工審查
 
 你 **必須** 在完成每一個步驟之後，進入下一個步驟之前，先更新這個檔案，把對應的步驟標記為完成
 

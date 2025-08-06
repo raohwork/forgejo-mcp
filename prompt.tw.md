@@ -92,10 +92,10 @@
       - Remove: `"Issue #%d no longer blocks issue #%d"`
     - [x] 注意參數順序：blocking issue 在前，blocked issue 在後
     - [x] 檢查編譯和基本功能測試
-- [ ] 人工審查
-- [ ] **第五階段：註冊工具到 MCP**
-    - [ ] 在 `cmd/lib.go` 的工具註冊列表中新增三個新工具
-    - [ ] 檢查完整編譯和工具可用性
+- [x] 人工審查
+- [x] **第五階段：註冊工具到 MCP**
+    - [x] 在 `cmd/lib.go` 的工具註冊列表中新增三個新工具
+    - [x] 檢查完整編譯和工具可用性
 - [ ] 人工審查
 - [ ] **第六階段：測試與驗證**
     - [ ] 新增對應測試到 `types/misc_test.go` 測試 `IssueBlockingList.ToMarkdown()`

@@ -163,20 +163,8 @@ func (impl ListRepoIssuesImpl) Handler() mcp.ToolHandlerFor[ListRepoIssuesParams
 		}
 
 		// Convert to our types and format
-		var content string
-		if len(issues) == 0 {
-			content = "No issues found matching the criteria."
-		} else {
-			// Convert and format issues
-			var issuesMarkdown string
-			for _, issue := range issues {
-				issueWrapper := &types.Issue{Issue: issue}
-				issuesMarkdown += issueWrapper.ToMarkdown() + "\n\n---\n\n"
-			}
-
-			content = fmt.Sprintf("Found %d issues\n\n%s",
-				len(issues), issuesMarkdown)
-		}
+		issueList := types.IssueList(issues)
+		content := fmt.Sprintf("Found %d issues\n\n%s", len(issues), issueList.ToMarkdown())
 
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{

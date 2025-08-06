@@ -8,6 +8,7 @@ package types
 
 import (
 	"fmt"
+	"strings"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 )
@@ -117,6 +118,60 @@ func (id *IssueDependency) ToMarkdown() string {
 	} else {
 		markdown += fmt.Sprintf("Issue #%d", id.DependencyID)
 	}
+	return markdown
+}
+
+// IssueList represents a list of issues optimized for list display
+// Used by list_repo_issues endpoint to show essential information only
+type IssueList []*forgejo.Issue
+
+// ToMarkdown renders issues with essential information for quick scanning
+// Shows: Index, Title, State, Assignees, Labels, Updated time, Comments count
+// Example per issue:
+// #123 Fix login bug (open) | [testuser] | [bug priority-high] | 2024-01-15 | 5 comments
+func (il IssueList) ToMarkdown() string {
+	if len(il) == 0 {
+		return "*No issues found*"
+	}
+
+	markdown := ""
+	for _, issue := range il {
+		if issue == nil {
+			continue
+		}
+
+		// Index, Title, and State
+		line := fmt.Sprintf("#%d %s (%s)", issue.Index, issue.Title, issue.State)
+
+		// Assignees
+		if len(issue.Assignees) > 0 {
+			assigneeNames := make([]string, len(issue.Assignees))
+			for i, assignee := range issue.Assignees {
+				assigneeNames[i] = assignee.UserName
+			}
+			line += " | [" + strings.Join(assigneeNames, " ") + "]"
+		}
+
+		// Labels
+		if len(issue.Labels) > 0 {
+			labelNames := make([]string, len(issue.Labels))
+			for i, label := range issue.Labels {
+				labelNames[i] = label.Name
+			}
+			line += " | [" + strings.Join(labelNames, " ") + "]"
+		}
+
+		// Updated time
+		if !issue.Updated.IsZero() {
+			line += " | " + issue.Updated.Format("2006-01-02")
+		}
+
+		// Comments count
+		line += fmt.Sprintf(" | %d", issue.Comments)
+
+		markdown += line + "\n"
+	}
+
 	return markdown
 }
 

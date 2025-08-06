@@ -54,6 +54,56 @@ func TestIssue_ToMarkdown(t *testing.T) {
 	}
 }
 
+func TestIssueList_ToMarkdown(t *testing.T) {
+	updated := testTime()
+	tests := []struct {
+		name     string
+		list     IssueList
+		required []string
+	}{
+		{
+			name: "complete issue list with necessary fields",
+			list: IssueList{
+				&forgejo.Issue{
+					Index:     123,
+					Title:     "Fix login bug",
+					State:     "open",
+					Assignees: []*forgejo.User{testUser()},
+					Labels: []*forgejo.Label{
+						{Name: "bug"},
+						{Name: "priority-high"},
+					},
+					Updated:  updated,
+					Comments: 5,
+				},
+				&forgejo.Issue{
+					Index:    456,
+					Title:    "Simple issue",
+					State:    "closed",
+					Updated:  updated,
+					Comments: 0,
+				},
+			},
+			required: []string{
+				"#123", "Fix login bug", "open", "testuser", "bug", "priority-high", "2024-01-15", "5",
+				"#456", "Simple issue", "closed", "0",
+			},
+		},
+		{
+			name:     "empty issue list",
+			list:     IssueList{},
+			required: []string{"No issues found"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := tt.list.ToMarkdown()
+			assertContains(t, output, tt.required)
+		})
+	}
+}
+
 func TestComment_ToMarkdown(t *testing.T) {
 	created := testTime()
 	tests := []struct {

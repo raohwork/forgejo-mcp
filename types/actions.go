@@ -11,7 +11,6 @@ import (
 	"time"
 )
 
-
 // ActionTaskList represents a list of action tasks response
 // Used by endpoints:
 // - GET /repos/{owner}/{repo}/actions/tasks
@@ -62,18 +61,18 @@ type MyActionTask struct {
 // ToMarkdown renders action task with name, status, execution info and timing
 func (at *MyActionTask) ToMarkdown() string {
 	markdown := fmt.Sprintf("**%s** `%s` - Run #%d", at.DisplayTitle, at.Status, at.RunNumber)
-	
+
 	// Add timing information for statistical analysis
 	if !at.CreatedAt.IsZero() {
 		markdown += fmt.Sprintf(" | Created: %s", at.CreatedAt.Format("2006-01-02 15:04"))
 	}
-	
+
 	// Add duration if both start and update times are available
 	if !at.RunStartedAt.IsZero() && !at.UpdatedAt.IsZero() {
 		duration := at.UpdatedAt.Sub(at.RunStartedAt)
 		markdown += fmt.Sprintf(" | Duration: %s", duration.String())
 	}
-	
+
 	return markdown
 }
 

@@ -41,7 +41,7 @@ func (ListIssueDependenciesImpl) Definition() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "list_issue_dependencies",
 		Title:       "List Issue Dependencies",
-		Description: "List all dependency relationships for an issue, showing which issues this issue depends on and which issues depend on this issue.",
+		Description: "List all issues that must be closed before this issue can be closed. Shows dependency relationships where this issue is blocked by other issues.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint:   true,
 			IdempotentHint: true,
@@ -119,7 +119,7 @@ func (AddIssueDependencyImpl) Definition() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "add_issue_dependency",
 		Title:       "Add Issue Dependency",
-		Description: "Add a dependency relationship between two issues, where one issue depends on another.",
+		Description: "Add a dependency relationship where this issue depends on another issue. The dependency must be closed before this issue can be closed.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint:    false,
 			DestructiveHint: tools.BoolPtr(false),
@@ -207,7 +207,7 @@ func (RemoveIssueDependencyImpl) Definition() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "remove_issue_dependency",
 		Title:       "Remove Issue Dependency",
-		Description: "Remove a specific dependency relationship between two issues.",
+		Description: "Remove a dependency relationship where this issue depends on another issue. This allows the issue to be closed independently.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint:    false,
 			DestructiveHint: tools.BoolPtr(true),
@@ -370,7 +370,7 @@ func (AddIssueBlockingImpl) Definition() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "add_issue_blocking",
 		Title:       "Add Issue Blocking",
-		Description: "Add a blocking relationship between two issues, where one issue blocks another.",
+		Description: "Add a blocking relationship where this issue blocks another issue. The blocked issue cannot be closed until this issue is closed first.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint:    false,
 			DestructiveHint: tools.BoolPtr(false),
@@ -458,7 +458,7 @@ func (RemoveIssueBlockingImpl) Definition() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "remove_issue_blocking",
 		Title:       "Remove Issue Blocking",
-		Description: "Remove a specific blocking relationship between two issues.",
+		Description: "Remove a blocking relationship where this issue blocks another issue. This allows the blocked issue to be closed independently.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint:    false,
 			DestructiveHint: tools.BoolPtr(true),

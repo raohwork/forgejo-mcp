@@ -73,12 +73,20 @@ Labels available for a specific repository
   - **Due date:** 🟢 `PATCH /repos/{owner}/{repo}/issues/{index}` (modify `due_date`)
   - SDK: `EditIssue(owner, repo string, index int64, opt EditIssueOption) (*Issue, *Response, error)`
   - **Dependency management:** 🟡
-    - **Add dependency:** `POST /repos/{owner}/{repo}/issues/{index}/dependencies`
-    - Custom: Not supported by SDK, requires custom HTTP request
-    - **List dependencies:** `GET /repos/{owner}/{repo}/issues/{index}/dependencies`
-    - Custom: Not supported by SDK, requires custom HTTP request
-    - **Remove dependency:** `DELETE /repos/{owner}/{repo}/issues/{index}/dependencies` (via request body)
-    - Custom: Not supported by SDK, requires custom HTTP request
+    - **Dependencies (issues that block this issue):**
+      - **Add dependency:** `POST /repos/{owner}/{repo}/issues/{index}/dependencies`
+      - Custom: Not supported by SDK, requires custom HTTP request
+      - **List dependencies:** `GET /repos/{owner}/{repo}/issues/{index}/dependencies`
+      - Custom: Not supported by SDK, requires custom HTTP request
+      - **Remove dependency:** `DELETE /repos/{owner}/{repo}/issues/{index}/dependencies` (via request body)
+      - Custom: Not supported by SDK, requires custom HTTP request
+    - **Blocking (issues blocked by this issue):**
+      - **Add blocking:** `POST /repos/{owner}/{repo}/issues/{index}/blocks`
+      - Custom: Not supported by SDK, requires custom HTTP request
+      - **List blocking:** `GET /repos/{owner}/{repo}/issues/{index}/blocks`
+      - Custom: Not supported by SDK, requires custom HTTP request
+      - **Remove blocking:** `DELETE /repos/{owner}/{repo}/issues/{index}/blocks` (via request body)
+      - Custom: Not supported by SDK, requires custom HTTP request
 - **Edit Issue Comments** 🟢
   - `PATCH /repos/{owner}/{repo}/issues/comments/{id}`
   - SDK: `EditIssueComment(owner, repo string, commentID int64, opt EditIssueCommentOption) (*Comment, *Response, error)`

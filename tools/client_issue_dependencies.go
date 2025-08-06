@@ -15,6 +15,8 @@ import (
 )
 
 // MyAddIssueDependency adds a dependency to an issue.
+// Creates a relationship where the current issue (index) depends on another issue (dependency).
+// This means the dependency issue must be closed before the current issue can be closed.
 // POST /repos/{owner}/{repo}/issues/{index}/dependencies
 func (c *Client) MyAddIssueDependency(owner, repo string, index int64, dependency types.MyIssueMeta) (*forgejo.Issue, error) {
 	endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/dependencies", owner, repo, index)
@@ -29,6 +31,7 @@ func (c *Client) MyAddIssueDependency(owner, repo string, index int64, dependenc
 }
 
 // MyListIssueDependencies lists all dependencies of an issue.
+// Returns issues that must be closed before the current issue can be closed.
 // GET /repos/{owner}/{repo}/issues/{index}/dependencies
 func (c *Client) MyListIssueDependencies(owner, repo string, index int64) ([]*forgejo.Issue, error) {
 	endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/dependencies", owner, repo, index)
@@ -43,6 +46,7 @@ func (c *Client) MyListIssueDependencies(owner, repo string, index int64) ([]*fo
 }
 
 // MyRemoveIssueDependency removes a dependency from an issue.
+// Removes the relationship where the current issue depends on another issue.
 // DELETE /repos/{owner}/{repo}/issues/{index}/dependencies
 func (c *Client) MyRemoveIssueDependency(owner, repo string, index int64, dependency types.MyIssueMeta) (*forgejo.Issue, error) {
 	endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/dependencies", owner, repo, index)
@@ -57,6 +61,7 @@ func (c *Client) MyRemoveIssueDependency(owner, repo string, index int64, depend
 }
 
 // MyListIssueBlocking lists all issues blocked by this issue.
+// Returns issues that cannot be closed until the current issue is closed.
 // GET /repos/{owner}/{repo}/issues/{index}/blocks
 func (c *Client) MyListIssueBlocking(owner, repo string, index int64) ([]*forgejo.Issue, error) {
 	endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/blocks", owner, repo, index)
@@ -67,6 +72,8 @@ func (c *Client) MyListIssueBlocking(owner, repo string, index int64) ([]*forgej
 }
 
 // MyAddIssueBlocking blocks the issue given in the body by the issue in path.
+// Creates a relationship where the current issue (index) blocks another issue (blocked).
+// This means the current issue must be closed before the blocked issue can be closed.
 // POST /repos/{owner}/{repo}/issues/{index}/blocks
 func (c *Client) MyAddIssueBlocking(owner, repo string, index int64, blocked types.MyIssueMeta) (*forgejo.Issue, error) {
 	endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/blocks", owner, repo, index)
@@ -77,6 +84,7 @@ func (c *Client) MyAddIssueBlocking(owner, repo string, index int64, blocked typ
 }
 
 // MyRemoveIssueBlocking unblocks the issue given in the body by the issue in path.
+// Removes the relationship where the current issue blocks another issue.
 // DELETE /repos/{owner}/{repo}/issues/{index}/blocks
 func (c *Client) MyRemoveIssueBlocking(owner, repo string, index int64, blocked types.MyIssueMeta) (*forgejo.Issue, error) {
 	endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/blocks", owner, repo, index)

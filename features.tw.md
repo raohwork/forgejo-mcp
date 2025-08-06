@@ -73,12 +73,20 @@
   - **到期時間:** 🟢 `PATCH /repos/{owner}/{repo}/issues/{index}` (修改 `due_date`)
   - SDK: `EditIssue(owner, repo string, index int64, opt EditIssueOption) (*Issue, *Response, error)`
   - **依賴管理:** 🟡
-    - **新增依賴:** `POST /repos/{owner}/{repo}/issues/{index}/dependencies`
-    - Custom: SDK 無支援，需自訂 HTTP 請求
-    - **列出依賴:** `GET /repos/{owner}/{repo}/issues/{index}/dependencies`
-    - Custom: SDK 無支援，需自訂 HTTP 請求
-    - **移除依賴:** `DELETE /repos/{owner}/{repo}/issues/{index}/dependencies` (透過 request body)
-    - Custom: SDK 無支援，需自訂 HTTP 請求
+    - **依賴關係 (阻塞當前 issue 的其他 issues):**
+      - **新增依賴:** `POST /repos/{owner}/{repo}/issues/{index}/dependencies`
+      - Custom: SDK 無支援，需自訂 HTTP 請求
+      - **列出依賴:** `GET /repos/{owner}/{repo}/issues/{index}/dependencies`
+      - Custom: SDK 無支援，需自訂 HTTP 請求
+      - **移除依賴:** `DELETE /repos/{owner}/{repo}/issues/{index}/dependencies` (透過 request body)
+      - Custom: SDK 無支援，需自訂 HTTP 請求
+    - **阻塞關係 (被當前 issue 阻塞的其他 issues):**
+      - **新增阻塞:** `POST /repos/{owner}/{repo}/issues/{index}/blocks`
+      - Custom: SDK 無支援，需自訂 HTTP 請求
+      - **列出阻塞:** `GET /repos/{owner}/{repo}/issues/{index}/blocks`
+      - Custom: SDK 無支援，需自訂 HTTP 請求
+      - **移除阻塞:** `DELETE /repos/{owner}/{repo}/issues/{index}/blocks` (透過 request body)
+      - Custom: SDK 無支援，需自訂 HTTP 請求
 - **編輯 Issue 評論** 🟢
   - `PATCH /repos/{owner}/{repo}/issues/comments/{id}`
   - SDK: `EditIssueComment(owner, repo string, commentID int64, opt EditIssueCommentOption) (*Comment, *Response, error)`

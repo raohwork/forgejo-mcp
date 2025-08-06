@@ -7,7 +7,11 @@
 package types
 
 import (
+	"encoding/base64"
 	"testing"
+	"time"
+
+	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 )
 
 func TestWikiPage_ToMarkdown(t *testing.T) {
@@ -20,16 +24,24 @@ func TestWikiPage_ToMarkdown(t *testing.T) {
 		{
 			name: "complete wiki page with all fields",
 			wiki: &WikiPage{
-				Title:        "Getting Started",
-				Content:      "Welcome to our project wiki. This guide will help you get started with the project.",
-				LastModified: modified,
+				MyWikiPage: &MyWikiPage{
+					Title:         "Getting Started",
+					ContentBase64: base64.StdEncoding.EncodeToString([]byte("Welcome to our project wiki. This guide will help you get started with the project.")),
+					LastCommit: &MyWikiCommit{
+						Author: &forgejo.CommitUser{
+							Date: modified.Format(time.RFC3339),
+						},
+					},
+				},
 			},
 			required: []string{"# Getting Started", "Last modified: 2024-01-15 14:30", "Welcome to our project wiki"},
 		},
 		{
 			name: "wiki page without content",
 			wiki: &WikiPage{
-				Title: "Empty Page",
+				MyWikiPage: &MyWikiPage{
+					Title: "Empty Page",
+				},
 			},
 			required: []string{"# Empty Page"},
 		},
@@ -53,15 +65,23 @@ func TestWikiPageList_ToMarkdown(t *testing.T) {
 		{
 			name: "multiple wiki pages with complete information",
 			wikis: WikiPageList{
-				&WikiPage{
-					Title:        "Getting Started",
-					LastModified: modified,
+				&MyWikiPageMetaData{
+					Title: "Getting Started",
+					LastCommit: &MyWikiCommit{
+						Author: &forgejo.CommitUser{
+							Date: modified.Format(time.RFC3339),
+						},
+					},
 				},
-				&WikiPage{
-					Title:        "API Documentation",
-					LastModified: modified,
+				&MyWikiPageMetaData{
+					Title: "API Documentation",
+					LastCommit: &MyWikiCommit{
+						Author: &forgejo.CommitUser{
+							Date: modified.Format(time.RFC3339),
+						},
+					},
 				},
-				&WikiPage{
+				&MyWikiPageMetaData{
 					Title: "Contributing Guide",
 				},
 			},
@@ -70,7 +90,7 @@ func TestWikiPageList_ToMarkdown(t *testing.T) {
 		{
 			name:     "empty wiki page list",
 			wikis:    WikiPageList{},
-			required: []string{"No wiki pages found"},
+			required: []string{"*No wiki pages found*"},
 		},
 	}
 

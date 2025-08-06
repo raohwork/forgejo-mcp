@@ -10,7 +10,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -84,25 +83,9 @@ func (impl GetWikiPageImpl) Handler() mcp.ToolHandlerFor[GetWikiPageParams, any]
 			return nil, fmt.Errorf("failed to get wiki page: %w", err)
 		}
 
-		// Decode base64 content
-		content, err := base64.StdEncoding.DecodeString(page.ContentBase64)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode page content: %w", err)
-		}
-
 		// Convert to our type and format
 		wikiPage := &types.WikiPage{
-			Title:          page.Title,
-			Content:        string(content),
-			HTMLContentURL: page.HTMLURL,
-			SubURL:         page.SubURL,
-		}
-		// Set last modified time if available
-		if page.LastCommit != nil && page.LastCommit.Author != nil && page.LastCommit.Author.Date != "" {
-			// Try to parse the date string
-			if parsedTime, err := time.Parse(time.RFC3339, page.LastCommit.Author.Date); err == nil {
-				wikiPage.LastModified = parsedTime
-			}
+			MyWikiPage: page,
 		}
 
 		return &mcp.CallToolResult{
@@ -202,11 +185,7 @@ func (impl CreateWikiPageImpl) Handler() mcp.ToolHandlerFor[CreateWikiPageParams
 
 		// Convert to our type and format
 		wikiPage := &types.WikiPage{
-			Title:          page.Title,
-			Content:        p.Content, // Use original content
-			HTMLContentURL: page.HTMLURL,
-			SubURL:         page.SubURL,
-			LastModified:   time.Now(), // Set to current time for new page
+			MyWikiPage: page,
 		}
 
 		return &mcp.CallToolResult{
@@ -314,11 +293,7 @@ func (impl EditWikiPageImpl) Handler() mcp.ToolHandlerFor[EditWikiPageParams, an
 
 		// Convert to our type and format
 		wikiPage := &types.WikiPage{
-			Title:          page.Title,
-			Content:        p.Content, // Use updated content
-			HTMLContentURL: page.HTMLURL,
-			SubURL:         page.SubURL,
-			LastModified:   time.Now(), // Set to current time for updated page
+			MyWikiPage: page,
 		}
 
 		return &mcp.CallToolResult{

@@ -7,6 +7,7 @@
 package types
 
 import (
+	"encoding/base64"
 	"time"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
@@ -53,13 +54,7 @@ type MyCreateWikiPageOptions struct {
 // - POST /repos/{owner}/{repo}/wiki/new
 // - PATCH /repos/{owner}/{repo}/wiki/page/{pageName}
 type WikiPage struct {
-	Title          string    `json:"title"`
-	Content        string    `json:"content"`
-	CommitMessage  string    `json:"commit_message,omitempty"`
-	LastCommitSHA  string    `json:"last_commit_sha,omitempty"`
-	LastModified   time.Time `json:"last_modified,omitempty"`
-	HTMLContentURL string    `json:"html_content_url,omitempty"`
-	SubURL         string    `json:"sub_url,omitempty"`
+	*MyWikiPage
 }
 
 // ToMarkdown renders wiki page with title, last modified date and content
@@ -69,11 +64,15 @@ type WikiPage struct {
 // Welcome to our project wiki...
 func (w *WikiPage) ToMarkdown() string {
 	markdown := "# " + w.Title + "\n"
-	if !w.LastModified.IsZero() {
-		markdown += "*Last modified: " + w.LastModified.Format("2006-01-02 15:04") + "*\n\n"
+	if w.LastCommit != nil && w.LastCommit.Author != nil && w.LastCommit.Author.Date != "" {
+		if t, err := time.Parse(time.RFC3339, w.LastCommit.Author.Date); err == nil {
+			markdown += "*Last modified: " + t.Format("2006-01-02 15:04") + "*\n\n"
+		}
 	}
-	if w.Content != "" {
-		markdown += w.Content
+	if w.ContentBase64 != "" {
+		if content, err := base64.StdEncoding.DecodeString(w.ContentBase64); err == nil {
+			markdown += string(content)
+		}
 	}
 	return markdown
 }
@@ -81,7 +80,7 @@ func (w *WikiPage) ToMarkdown() string {
 // WikiPageList represents a list of wiki pages response
 // Used by endpoints:
 // - GET /repos/{owner}/{repo}/wiki/pages
-type WikiPageList []*WikiPage
+type WikiPageList []*MyWikiPageMetaData
 
 // ToMarkdown renders wiki pages as a table of contents with links
 // Example: ## Wiki Pages
@@ -95,8 +94,10 @@ func (wl WikiPageList) ToMarkdown() string {
 	markdown := "## Wiki Pages\n"
 	for _, page := range wl {
 		markdown += "- **" + page.Title + "**"
-		if !page.LastModified.IsZero() {
-			markdown += " (" + page.LastModified.Format("2006-01-02") + ")"
+		if page.LastCommit != nil && page.LastCommit.Author != nil && page.LastCommit.Author.Date != "" {
+			if t, err := time.Parse(time.RFC3339, page.LastCommit.Author.Date); err == nil {
+				markdown += " (" + t.Format("2006-01-02") + ")"
+			}
 		}
 		markdown += "\n"
 	}

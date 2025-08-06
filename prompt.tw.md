@@ -19,9 +19,10 @@
 - [x] 開新的 branch
 - [x] 把 `tools.MyWikiPage` 及相為的附屬型別，搬移到 `types` package
 - [x] 修正編譯錯誤 (具體來說是配合引用路徑的變更進行修改)
-- [ ] 人工審查
-- [ ] 把 `types.WikiPage` 改成 `type WikiPage struct { *MyWikiPage }`
-- [ ] 修正對應的 ToMarkdown 方法以維持原本的輸出格式，確保通過測試
+- [x] 人工審查
+- [x] 把 `types.WikiPage` 改成 `type WikiPage struct { *MyWikiPage }` (不要有額外欄位) 需注意 ContentBase64 欄位是以 base64 編碼的，不能直接輸出
+- [x] 把 `types.WikiPageList` 改成 `type WikiPageList []*MyWikiPageMetaData`
+- [x] 修正對應的 ToMarkdown 方法以維持原本的輸出格式，確保通過測試
 - [ ] 人工審查
 
 你 **必須** 在完成每一個步驟之後，進入下一個步驟之前，先更新這個檔案，把對應的步驟標記為完成

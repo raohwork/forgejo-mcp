@@ -9,7 +9,6 @@ package wiki
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -78,32 +77,12 @@ func (impl ListWikiPagesImpl) Handler() mcp.ToolHandlerFor[ListWikiPagesParams, 
 		}
 
 		// Convert to our types and format
+		pageList := types.WikiPageList(pages)
+
 		var content string
 		if len(pages) == 0 {
 			content = "No wiki pages found in this repository."
 		} else {
-			// Convert pages to our type
-			pageList := make(types.WikiPageList, len(pages))
-			for i, page := range pages {
-				// Map custom page to our type
-				wikiPage := &types.WikiPage{
-					Title:          page.Title,
-					HTMLContentURL: page.HTMLURL,
-					SubURL:         page.SubURL,
-				}
-				// Set last modified time if available
-				if page.LastCommit != nil && page.LastCommit.Author != nil && page.LastCommit.Author.Date != "" {
-					// Try to parse the date string
-					if parsedTime, err := time.Parse(time.RFC3339, page.LastCommit.Author.Date); err == nil {
-						wikiPage.LastModified = parsedTime
-					} else {
-						// Use current time as fallback if parsing fails
-						wikiPage.LastModified = time.Time{}
-					}
-				}
-				pageList[i] = wikiPage
-			}
-
 			content = fmt.Sprintf("Found %d wiki pages\n\n%s",
 				len(pages), pageList.ToMarkdown())
 		}

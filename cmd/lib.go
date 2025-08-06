@@ -49,6 +49,11 @@ func registerCommands(s *mcp.Server, cl *tools.Client) {
 	tools.Register(s, &issue.AddIssueDependencyImpl{Client: cl})
 	tools.Register(s, &issue.RemoveIssueDependencyImpl{Client: cl})
 
+	// Issue blocking tools
+	tools.Register(s, &issue.ListIssueBlockingImpl{Client: cl})
+	tools.Register(s, &issue.AddIssueBlockingImpl{Client: cl})
+	tools.Register(s, &issue.RemoveIssueBlockingImpl{Client: cl})
+
 	// Label tools
 	tools.Register(s, &label.ListRepoLabelsImpl{Client: cl})
 	tools.Register(s, &label.CreateLabelImpl{Client: cl})

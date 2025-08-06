@@ -55,3 +55,33 @@ func (c *Client) MyRemoveIssueDependency(owner, repo string, index int64, depend
 
 	return &result, nil
 }
+
+// MyListIssueBlocking lists all issues blocked by this issue.
+// GET /repos/{owner}/{repo}/issues/{index}/blocks
+func (c *Client) MyListIssueBlocking(owner, repo string, index int64) ([]*forgejo.Issue, error) {
+	endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/blocks", owner, repo, index)
+
+	var issues []*forgejo.Issue
+	err := c.sendSimpleRequest("GET", endpoint, nil, &issues)
+	return issues, err
+}
+
+// MyAddIssueBlocking blocks the issue given in the body by the issue in path.
+// POST /repos/{owner}/{repo}/issues/{index}/blocks
+func (c *Client) MyAddIssueBlocking(owner, repo string, index int64, blocked types.MyIssueMeta) (*forgejo.Issue, error) {
+	endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/blocks", owner, repo, index)
+
+	var issue *forgejo.Issue
+	err := c.sendSimpleRequest("POST", endpoint, blocked, &issue)
+	return issue, err
+}
+
+// MyRemoveIssueBlocking unblocks the issue given in the body by the issue in path.
+// DELETE /repos/{owner}/{repo}/issues/{index}/blocks
+func (c *Client) MyRemoveIssueBlocking(owner, repo string, index int64, blocked types.MyIssueMeta) (*forgejo.Issue, error) {
+	endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/blocks", owner, repo, index)
+
+	var issue *forgejo.Issue
+	err := c.sendSimpleRequest("DELETE", endpoint, blocked, &issue)
+	return issue, err
+}

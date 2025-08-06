@@ -46,3 +46,30 @@ func (idl IssueDependencyList) ToMarkdown() string {
 
 	return markdown
 }
+
+// IssueBlockingList represents a list of issues that are blocked by the current issue.
+// According to Forgejo API definition, these are issues that cannot be closed
+// until the current issue is closed.
+// Used by list_issue_blocking endpoint.
+type IssueBlockingList []*forgejo.Issue
+
+// ToMarkdown renders issue blocking list with essential information for quick scanning
+// Shows: #Index **Title** (state)
+// Example per issue:
+// #123 **Fix authentication bug** (open)
+// #45 **Update user model** (closed)
+func (ibl IssueBlockingList) ToMarkdown() string {
+	if len(ibl) == 0 {
+		return "*This issue is not blocking any other issues*"
+	}
+
+	markdown := ""
+	for _, issue := range ibl {
+		if issue == nil {
+			continue
+		}
+		markdown += fmt.Sprintf("#%d **%s** (%s)\n", issue.Index, issue.Title, issue.State)
+	}
+
+	return markdown
+}

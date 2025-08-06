@@ -84,14 +84,14 @@
     - [x] 使用 `IssueBlockingList.ToMarkdown()` 進行格式化
     - [x] 檢查編譯和基本功能測試
 - [ ] 人工審查
-- [ ] **第四階段：實作 MCP 工具 - Add/Remove**
-    - [ ] 在 `tools/issue/dep.go` 新增 `AddIssueBlockingImpl` 和 `RemoveIssueBlockingImpl`
-    - [ ] 實作對應的 `Definition()` 方法，工具名稱為 `add_issue_blocking` 和 `remove_issue_blocking`
-    - [ ] 實作 `Handler()` 方法，使用 `EmptyResponse` 回傳簡潔訊息：
+- [x] **第四階段：實作 MCP 工具 - Add/Remove**
+    - [x] 在 `tools/issue/dep.go` 新增 `AddIssueBlockingImpl` 和 `RemoveIssueBlockingImpl`
+    - [x] 實作對應的 `Definition()` 方法，工具名稱為 `add_issue_blocking` 和 `remove_issue_blocking`
+    - [x] 實作 `Handler()` 方法，使用 `EmptyResponse` 回傳簡潔訊息：
       - Add: `"Issue #%d now blocks issue #%d"`
       - Remove: `"Issue #%d no longer blocks issue #%d"`
-    - [ ] 注意參數順序：blocking issue 在前，blocked issue 在後
-    - [ ] 檢查編譯和基本功能測試
+    - [x] 注意參數順序：blocking issue 在前，blocked issue 在後
+    - [x] 檢查編譯和基本功能測試
 - [ ] 人工審查
 - [ ] **第五階段：註冊工具到 MCP**
     - [ ] 在 `cmd/lib.go` 的工具註冊列表中新增三個新工具

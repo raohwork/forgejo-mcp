@@ -15,7 +15,7 @@ func TestMyActionTask_ToMarkdown(t *testing.T) {
 	createdTime := testTime()
 	startedTime := createdTime.Add(1 * time.Minute)
 	updatedTime := startedTime.Add(5 * time.Minute)
-	
+
 	tests := []struct {
 		name     string
 		task     *MyActionTask
@@ -67,7 +67,6 @@ func TestMyActionTask_ToMarkdown(t *testing.T) {
 		})
 	}
 }
-
 
 func TestActionTaskList_ToMarkdown(t *testing.T) {
 	tests := []struct {

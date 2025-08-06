@@ -166,7 +166,7 @@ func (impl AddIssueDependencyImpl) Handler() mcp.ToolHandlerFor[AddIssueDependen
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[AddIssueDependencyParams]) (*mcp.CallToolResult, error) {
 		p := params.Arguments
 
-		dependency := tools.MyIssueMeta{
+		dependency := types.MyIssueMeta{
 			Owner: p.Owner,
 			Name:  p.Repo,
 			Index: int64(p.DependencyIndex),
@@ -254,7 +254,7 @@ func (impl RemoveIssueDependencyImpl) Handler() mcp.ToolHandlerFor[RemoveIssueDe
 	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[RemoveIssueDependencyParams]) (*mcp.CallToolResult, error) {
 		p := params.Arguments
 
-		dependency := tools.MyIssueMeta{
+		dependency := types.MyIssueMeta{
 			Owner: p.Owner,
 			Name:  p.Repo,
 			Index: int64(p.DependencyIndex),

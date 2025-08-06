@@ -50,19 +50,35 @@ func (m *Milestone) ToMarkdown() string {
 // - GET /repos/{owner}/{repo}/milestones
 type MilestoneList []*Milestone
 
-// ToMarkdown renders milestones as a numbered list with details
+// ToMarkdown renders milestones as a numbered list with essential details only
+// Description is omitted to reduce memory usage for AI assistants
 // Example:
 // 1. **v1.0.0** (open) - Due: 2024-12-31 - Progress: 5/10
-// Fix critical bugs before release
 // 2. **v0.9.0** (closed) - Progress: 10/10
-// Beta release with new features
 func (ml MilestoneList) ToMarkdown() string {
 	if len(ml) == 0 {
 		return "*No milestones found*"
 	}
 	markdown := ""
 	for i, milestone := range ml {
-		markdown += fmt.Sprintf("%d. %s\n", i+1, milestone.ToMarkdown())
+		if milestone.Milestone == nil {
+			markdown += fmt.Sprintf("%d. *Invalid milestone*\n", i+1)
+			continue
+		}
+
+		// Format: **Title** (state) - Due: date - Progress: closed/total
+		line := fmt.Sprintf("%d. **%s**", i+1, milestone.Title)
+		if milestone.State != "" {
+			line += " (" + string(milestone.State) + ")"
+		}
+		if milestone.Deadline != nil {
+			line += " - Due: " + milestone.Deadline.Format("2006-01-02")
+		}
+		if milestone.ClosedIssues > 0 || milestone.OpenIssues > 0 {
+			total := milestone.ClosedIssues + milestone.OpenIssues
+			line += " - Progress: " + fmt.Sprintf("%d/%d", milestone.ClosedIssues, total)
+		}
+		markdown += line + "\n"
 	}
 	return markdown
 }

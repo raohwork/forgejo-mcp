@@ -52,7 +52,7 @@ func TestMilestoneList_ToMarkdown(t *testing.T) {
 					Milestone: testMilestone(),
 				},
 			},
-			required: []string{"1.", "v1.0.0", "Major release", "2.", "v1.0.0"},
+			required: []string{"1.", "v1.0.0", "open", "2024-01-15", "Progress: 10/15", "2.", "v1.0.0"},
 		},
 		{
 			name:       "empty milestone list",

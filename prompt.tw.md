@@ -69,14 +69,14 @@
     - [x] 在 `types/dependencies.go` 中新增 `IssueBlockingList` 類型 (基於 `[]*forgejo.Issue`)
     - [x] 為 `IssueBlockingList` 實作 `ToMarkdown()` 方法，格式與 `IssueDependencyList` 相同但空值訊息不同
     - [x] 檢查編譯，確保新類型定義正確
-- [ ] 人工審查
-- [ ] **第二階段：實作 Client 方法**
-    - [ ] 在 `tools/client_issue_dependencies.go` 新增三個方法：
+- [x] 人工審查
+- [x] **第二階段：實作 Client 方法**
+    - [x] 在 `tools/client_issue_dependencies.go` 新增三個方法：
       - `MyListIssueBlocking(owner, repo string, index int64) ([]*forgejo.Issue, error)`
       - `MyAddIssueBlocking(owner, repo string, index int64, blocked types.MyIssueMeta) (*forgejo.Issue, error)`
       - `MyRemoveIssueBlocking(owner, repo string, index int64, blocked types.MyIssueMeta) (*forgejo.Issue, error)`
-    - [ ] 檢查編譯，確保 client 方法實作正確
-- [ ] 人工審查
+    - [x] 檢查編譯，確保 client 方法實作正確
+- [x] 人工審查
 - [ ] **第三階段：實作 MCP 工具 - List**
     - [ ] 在 `tools/issue/dep.go` 新增 `ListIssueBlockingImpl` 結構及相關類型
     - [ ] 實作 `Definition()` 方法，工具名稱為 `list_issue_blocking`
@@ -99,6 +99,7 @@
 - [ ] 人工審查
 - [ ] **第六階段：測試與驗證**
     - [ ] 新增對應測試到 `types/misc_test.go` 測試 `IssueBlockingList.ToMarkdown()`
+    - [ ] 把 `types/misc_test.go` 改名為 `types/dependencies_test.go`
     - [ ] 執行 `go test ./...` 確保所有測試通過
     - [ ] 執行 `go build ./...` 確保完整編譯成功
 - [ ] 人工審查

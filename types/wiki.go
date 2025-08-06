@@ -8,7 +8,44 @@ package types
 
 import (
 	"time"
+
+	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 )
+
+// MyWikiCommit represents wiki page commit/revision information.
+type MyWikiCommit struct {
+	ID        string              `json:"sha"`
+	Author    *forgejo.CommitUser `json:"author"`
+	Committer *forgejo.CommitUser `json:"commiter"` // Note: API has typo "commiter"
+	Message   string              `json:"message"`
+}
+
+// MyWikiPageMetaData represents wiki page meta information.
+type MyWikiPageMetaData struct {
+	Title      string        `json:"title"`
+	HTMLURL    string        `json:"html_url"`
+	SubURL     string        `json:"sub_url"`
+	LastCommit *MyWikiCommit `json:"last_commit"`
+}
+
+// MyWikiPage represents a complete wiki page with content.
+type MyWikiPage struct {
+	Title         string        `json:"title"`
+	HTMLURL       string        `json:"html_url"`
+	SubURL        string        `json:"sub_url"`
+	LastCommit    *MyWikiCommit `json:"last_commit"`
+	ContentBase64 string        `json:"content_base64"`
+	CommitCount   int64         `json:"commit_count"`
+	Sidebar       string        `json:"sidebar"`
+	Footer        string        `json:"footer"`
+}
+
+// MyCreateWikiPageOptions represents options for creating a wiki page.
+type MyCreateWikiPageOptions struct {
+	Title         string `json:"title"`
+	ContentBase64 string `json:"content_base64"`
+	Message       string `json:"message,omitempty"`
+}
 
 // WikiPage represents a wiki page response (custom implementation as SDK doesn't support)
 // Used by endpoints:

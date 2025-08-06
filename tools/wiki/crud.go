@@ -188,7 +188,7 @@ func (impl CreateWikiPageImpl) Handler() mcp.ToolHandlerFor[CreateWikiPageParams
 		p := params.Arguments
 
 		// Prepare options for API call
-		options := tools.MyCreateWikiPageOptions{
+		options := types.MyCreateWikiPageOptions{
 			Title:         p.Title,
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte(p.Content)),
 			Message:       p.Message,
@@ -300,7 +300,7 @@ func (impl EditWikiPageImpl) Handler() mcp.ToolHandlerFor[EditWikiPageParams, an
 		if title == "" {
 			title = p.PageName // Use current name if no new title
 		}
-		options := tools.MyCreateWikiPageOptions{
+		options := types.MyCreateWikiPageOptions{
 			Title:         title,
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte(p.Content)),
 			Message:       p.Message,

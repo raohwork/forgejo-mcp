@@ -77,12 +77,12 @@
       - `MyRemoveIssueBlocking(owner, repo string, index int64, blocked types.MyIssueMeta) (*forgejo.Issue, error)`
     - [x] 檢查編譯，確保 client 方法實作正確
 - [x] 人工審查
-- [ ] **第三階段：實作 MCP 工具 - List**
-    - [ ] 在 `tools/issue/dep.go` 新增 `ListIssueBlockingImpl` 結構及相關類型
-    - [ ] 實作 `Definition()` 方法，工具名稱為 `list_issue_blocking`
-    - [ ] 實作 `Handler()` 方法，輸出標頭為 `"## Issues blocked by #%d"`
-    - [ ] 使用 `IssueBlockingList.ToMarkdown()` 進行格式化
-    - [ ] 檢查編譯和基本功能測試
+- [x] **第三階段：實作 MCP 工具 - List**
+    - [x] 在 `tools/issue/dep.go` 新增 `ListIssueBlockingImpl` 結構及相關類型
+    - [x] 實作 `Definition()` 方法，工具名稱為 `list_issue_blocking`
+    - [x] 實作 `Handler()` 方法，輸出標頭為 `"## Issues blocked by #%d"`
+    - [x] 使用 `IssueBlockingList.ToMarkdown()` 進行格式化
+    - [x] 檢查編譯和基本功能測試
 - [ ] 人工審查
 - [ ] **第四階段：實作 MCP 工具 - Add/Remove**
     - [ ] 在 `tools/issue/dep.go` 新增 `AddIssueBlockingImpl` 和 `RemoveIssueBlockingImpl`

@@ -35,9 +35,9 @@
         - 新的測試應該符合我們重構的目的： Add 和 Remove 回應簡潔的成功或失敗訊息，List 回傳必要的 issue 資訊就好
     - [x] 重構 `ListIssueDependenciesImpl` 的 Handler，改為使用 `IssueDependencyList.ToMarkdown()`
 - [ ] 人工審查
-- [ ] **第三階段：簡化輸出 (Add/Remove)**
-    - [ ] 修改對應的測試，確保輸出只有簡潔的成功或錯誤訊息
-    - [ ] 重構 `AddIssueDependencyImpl` 和 `RemoveIssueDependencyImpl` 的 Handler，使其回傳簡潔的成功訊息字串，而不是完整的 issue 內容
+- [x] **第三階段：簡化輸出 (Add/Remove)**
+    - [x] 修改對應的測試，確保輸出只有簡潔的成功或錯誤訊息 (無測試檔案，EmptyResponse 測試已存在)
+    - [x] 重構 `AddIssueDependencyImpl` 和 `RemoveIssueDependencyImpl` 的 Handler，使其回傳簡潔的成功訊息字串，而不是完整的 issue 內容
 - [ ] 人工審查
 
 你 **必須** 在完成每一個步驟之後，進入下一個步驟之前，先更新這個檔案，把對應的步驟標記為完成

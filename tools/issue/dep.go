@@ -163,17 +163,17 @@ func (impl AddIssueDependencyImpl) Handler() mcp.ToolHandlerFor[AddIssueDependen
 			Index: int64(p.DependencyIndex),
 		}
 
-		issue, err := impl.Client.MyAddIssueDependency(p.Owner, p.Repo, int64(p.Index), dependency)
+		_, err := impl.Client.MyAddIssueDependency(p.Owner, p.Repo, int64(p.Index), dependency)
 		if err != nil {
 			return nil, fmt.Errorf("failed to add dependency: %w", err)
 		}
 
-		issueWrapper := &types.Issue{Issue: issue}
+		response := types.EmptyResponse{}
 
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{
-					Text: fmt.Sprintf("Dependency added to issue #%d\n\n%s", p.Index, issueWrapper.ToMarkdown()),
+					Text: fmt.Sprintf("Issue #%d now blocks issue #%d\n\n%s", p.DependencyIndex, p.Index, response.ToMarkdown()),
 				},
 			},
 		}, nil
@@ -251,17 +251,17 @@ func (impl RemoveIssueDependencyImpl) Handler() mcp.ToolHandlerFor[RemoveIssueDe
 			Index: int64(p.DependencyIndex),
 		}
 
-		issue, err := impl.Client.MyRemoveIssueDependency(p.Owner, p.Repo, int64(p.Index), dependency)
+		_, err := impl.Client.MyRemoveIssueDependency(p.Owner, p.Repo, int64(p.Index), dependency)
 		if err != nil {
 			return nil, fmt.Errorf("failed to remove dependency: %w", err)
 		}
 
-		issueWrapper := &types.Issue{Issue: issue}
+		response := types.EmptyResponse{}
 
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{
-					Text: fmt.Sprintf("Dependency removed from issue #%d\n\n%s", p.Index, issueWrapper.ToMarkdown()),
+					Text: fmt.Sprintf("Issue #%d no longer blocks issue #%d\n\n%s", p.DependencyIndex, p.Index, response.ToMarkdown()),
 				},
 			},
 		}, nil

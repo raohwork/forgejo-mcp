@@ -26,37 +26,89 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
-
     - name: Run test
       run: go test -v ./...
 
-    - name: Build for amd64 linux
+    - name: Prepare docker multiarch build
+      uses: https://github.com/docker/setup-qemu-action@v3
+    - name: Setup docker multiarch build
+      uses: https://github.com/docker/setup-buildx-action@v3
+      with:
+        platforms: linux/amd64,linux/arm64
+    - name: Docker - login to hub
+      uses: https://github.com/docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_HUB_USER }}
+        password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+    - name: Build binary for amd64 linux
       run: |
-        GOARCH=amd64 GOOS=linux go build -o forgejo-mcp.amd64
-        sha1sum forgejo-mcp.amd64 > forgejo-mcp.amd64.sha1
-    - name: Build for arm64 linux
+        GOARCH=amd64 GOOS=linux go build -o forgejo-mcp
+        cp forgejo-mcp forgejo-mcp.linux.amd64
+        sha1sum forgejo-mcp.linux.amd64 > forgejo-mcp.linux.amd64.sha1
+    - name: Build docker image for amd64
+      uses: https://github.com/docker/build-push-action@v6
+      with:
+        context: .
+        platforms: linux/amd64
+        push: true
+        pull: true
+        tags: ronmi/forgejo-mcp:amd64
+    - name: Build binary for arm64 linux
       run: |
-        GOARCH=arm64 GOOS=linux go build -o forgejo-mcp.arm64
-        sha1sum forgejo-mcp.arm64 > forgejo-mcp.arm64.sha1
-    - name: Build for amd64 windows
+        GOARCH=arm64 GOOS=linux go build -o forgejo-mcp
+        cp forgejo-mcp forgejo-mcp.linux.arm64
+        sha1sum forgejo-mcp.linux.arm64 > forgejo-mcp.linux.arm64.sha1
+    - name: Build docker image for arm64
+      uses: https://github.com/docker/build-push-action@v6
+      with:
+        context: .
+        platforms: linux/arm64
+        push: true
+        pull: true
+        tags: ronmi/forgejo-mcp:arm64
+
+
+    - name: Build binary for amd64 darwin
+      run: |
+        GOARCH=amd64 GOOS=darwin go build -o forgejo-mcp.darwin.amd64
+        sha1sum forgejo-mcp.darwin.amd64 > forgejo-mcp.darwin.amd64.sha1
+    - name: Build binary for arm64 darwin
+      run: |
+        GOARCH=arm64 GOOS=darwin go build -o forgejo-mcp.darwin.arm64
+        sha1sum forgejo-mcp.darwin.arm64 > forgejo-mcp.darwin.arm64.sha1
+    - name: Build binary for amd64 windows
       run: |
         GOARCH=amd64 GOOS=windows go build -o forgejo-mcp.amd64.exe
         sha1sum forgejo-mcp.amd64.exe > forgejo-mcp.amd64.exe.sha1
-    - name: Build for arm64 windows
+    - name: Build binary for arm64 windows
       run: |
         GOARCH=arm64 GOOS=windows go build -o forgejo-mcp.arm64.exe
         sha1sum forgejo-mcp.arm64.exe > forgejo-mcp.arm64.exe.sha1
+    
 
+    - name: Create multiarch image
+      run: |
+        docker buildx imagetools create -t ronmi/forgejo-mcp ronmi/forgejo-mcp:arm64 ronmi/forgejo-mcp:amd64
+    - name: Update readme to docker hub
+      uses: https://github.com/peter-evans/dockerhub-description@v4
+      with:
+        username: ${{ secrets.DOCKER_HUB_USER }}
+        password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+        repository: ronmi/forgejo-mcp
     - name: Create Release
       uses: https://github.com/softprops/action-gh-release@v1
       with:
         files: |
-          forgejo-mcp.amd64
-          forgejo-mcp.arm64
+          forgejo-mcp.linux.amd64
+          forgejo-mcp.linux.arm64
           forgejo-mcp.amd64.exe
           forgejo-mcp.arm64.exe
-          forgejo-mcp.amd64.sha1
-          forgejo-mcp.arm64.sha1
+          forgejo-mcp.darwin.amd64
+          forgejo-mcp.darwin.arm64
+          forgejo-mcp.linux.amd64.sha1
+          forgejo-mcp.linux.arm64.sha1
           forgejo-mcp.amd64.exe.sha1
           forgejo-mcp.arm64.exe.sha1
+          forgejo-mcp.darwin.amd64.sha1
+          forgejo-mcp.darwin.arm64.sha1
         token: ${{ secrets.FORGEJO_AUTH_TOKEN }}

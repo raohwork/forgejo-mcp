@@ -35,17 +35,27 @@ Then this tool is made for you!
 ### Other Features
 - View Pull Requests
 - Manage Wiki pages
-- View Forgejo Actions tasks
+- View Forgejo/Gitea Actions tasks
 
 ## 📦 Installation
 
-### Method 1: Install with Go (Recommended)
+### Method 1: Use docker (Recommended)
+
+For STDIO mode, you can skip to **Usage** section.
+
+For SSE/Streamable HTTP mode, you should run `forgejo-mcp` as server before configuring your MCP client.
+
+```bash
+docker run -p 8080:8080 -e FORGEJOMCP_TOKEN="my-forgejo-api-token" ronmi/forgejo-mcp http --address :8080 --server https://git.example.com
+```
+
+### Method 2: Install from source
 
 ```bash
 go install github.com/raohwork/forgejo-mcp@latest
 ```
 
-### Method 2: Download Pre-compiled Binaries
+### Method 3: Download Pre-compiled Binaries
 
 Download the appropriate version for your operating system from the [Releases page](https://github.com/raohwork/forgejo-mcp/releases).
 
@@ -53,11 +63,7 @@ Download the appropriate version for your operating system from the [Releases pa
 
 This tool provides two primary modes of operation: `stdio` for local integration and `http` for remote access.
 
-### Stdio Mode (for Local Clients)
-
-This is the recommended mode for integrating with local AI assistant clients like Claude Desktop or Gemini CLI. It uses standard input/output for direct communication.
-
-#### 1. Get Forgejo/Gitea Access Token
+Before actually setup you MCP client, you have to create an access token on the Forgejo/Gitea server.
 
 1. Log in to your Forgejo/Gitea instance
 2. Go to **Settings** → **Applications** → **Access Tokens**
@@ -65,20 +71,44 @@ This is the recommended mode for integrating with local AI assistant clients lik
 4. Select appropriate permission scopes (recommend at least `repository` and `issue` write permissions)
 5. Copy the generated token
 
-#### 2. Configure Your AI Client
+💡 **Tip**: For security, consider setting environment variables instead of using tokens directly in config:
+```bash
+export FORGEJOMCP_SERVER="https://your-forgejo-instance.com"
+export FORGEJOMCP_TOKEN="your_access_token"
+```
 
-##### Claude Desktop
+### Stdio Mode (for Local Clients)
 
-- **Windows**: Edit `%APPDATA%\Claude\claude_desktop_config.json`
-- **macOS**: Edit `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Linux**: Edit `~/.config/claude/claude_desktop_config.json`
+This is the recommended mode for integrating with local AI assistant clients like Claude Desktop or Gemini CLI. It uses standard input/output for direct communication.
 
-Add the following configuration:
+#### Configure Your AI Client
+
+Using docker:
+
 ```json
 {
   "mcpServers": {
     "forgejo": {
-      "command": "forgejo-mcp",
+      "command": "docker",
+      "args": [
+        "--rm",
+        "ronmi/forgejo-mcp",
+        "stdio",
+        "--server", "https://your-forgejo-instance.com",
+        "--token", "your_access_token"
+      ]
+    }
+  }
+}
+```
+
+Installed from source or pre-built binary:
+
+```json
+{
+  "mcpServers": {
+    "forgejo": {
+      "command": "/path/to/forgejo-mcp",
       "args": [
         "stdio",
         "--server", "https://your-forgejo-instance.com",
@@ -89,24 +119,7 @@ Add the following configuration:
 }
 ```
 
-##### Gemini CLI
-
-If you're using [Gemini CLI](https://github.com/google-gemini/gemini-cli), add this to your configuration file:
-
-```json
-{
-  "mcpServers": {
-    "forgejo": {
-      "command": "forgejo-mcp",
-      "args": [
-        "stdio",
-        "--server", "https://your-forgejo-instance.com",
-        "--token", "your_access_token"
-      ]
-    }
-  }
-}
-```
+You might want to take a look at **Security Recommendations** section for best practice.
 
 ### HTTP Server Mode (for Remote Access)
 
@@ -114,15 +127,19 @@ This mode starts a web server, allowing remote clients to connect via HTTP. It's
 
 Run the following command to start the server:
 ```bash
-forgejo-mcp http --address :8080 --server https://your-forgejo-instance.com
+# with local binary
+/path/to/forgejo-mcp http --address :8080 --server https://your-forgejo-instance.com
+
+# with docker
+docker run -p 8080:8080 -d --rm ronmi/forgejo-mcp http --address :8080 --server https://your-forgejo-instance.com
 ```
 
 The server supports two operational modes:
-- **Single-user mode**: If you provide a `--token` at startup, all operations will use that token.
+- **Single-user mode**: If you provide a `--token` (or environment variable `FORGEJOMCP_TOKEN`) at startup, all operations will use that token.
   ```bash
   forgejo-mcp http --address :8080 --server https://git.example.com --token your_token
   ```
-- **Multi-user mode**: If no `--token` is provided, the server requires clients to send an `Authorization: Bearer <token>` header with each request, allowing it to serve multiple users securely.
+- **Multi-user mode**: If no token is provided, the server requires clients to send an `Authorization: Bearer <token>` header with each request, allowing it to serve multiple users securely.
 
 #### Client Configuration
 
@@ -142,7 +159,7 @@ For clients that support connecting to a remote MCP server via HTTP, you can add
 }
 ```
 
-or `http` type (different URL)
+or `http` type (for Streamable HTTP, use different path in URL)
 
 ```json
 {
@@ -162,27 +179,9 @@ If connecting to a server in single-user mode, you can omit the `headers` field.
 
 ## 🛡️ Security Recommendations
 
-1. **Use environment variables**: Avoid writing tokens directly in configuration files
-   ```bash
-   export FORGEJOMCP_SERVER="https://your-forgejo-instance.com"
-   export FORGEJOMCP_TOKEN="your_access_token"
-   ```
-   
-   Then remove the `--server` and `--token` parameters from your configuration.
-   
-   For sse/http type, update your config:
-
-   ```json
-   {
-     "headers": {
-       "Authorization": "Bearer ${FORGEJOMCP_TOKEN}"
-     }
-   }
-   ```
-
+1. **Use environment variables**: Set `FORGEJOMCP_SERVER` and `FORGEJOMCP_TOKEN`, then remove `--server` and `--token` from your configuration
 2. **Limit token permissions**: Only grant necessary permission scopes
-
-3. **Rotate tokens regularly**: Recommended to update access tokens periodically
+3. **Rotate tokens regularly**: Update access tokens periodically
 
 ## 📋 Usage Examples
 

@@ -35,17 +35,27 @@
 ### 其他功能
 - 查看 Pull Request
 - 管理 Wiki 頁面
-- 查看 Forgejo Actions 任務
+- 查看 Forgejo/Gitea Actions 任務
 
 ## 📦 安裝
 
-### 方法一：使用 Go 安裝（推薦）
+### 方法一：使用 docker（推薦）
+
+對於 STDIO 模式，你可以直接跳到 **使用方式** 部分。
+
+對於 SSE/Streamable HTTP 模式，你應該在設定 MCP 客戶端之前先執行 `forgejo-mcp` 作為伺服器。
+
+```bash
+docker run -p 8080:8080 -e FORGEJOMCP_TOKEN="my-forgejo-api-token" ronmi/forgejo-mcp http --address :8080 --server https://git.example.com
+```
+
+### 方法二：從原始碼安裝
 
 ```bash
 go install github.com/raohwork/forgejo-mcp@latest
 ```
 
-### 方法二：下載預編譯版本
+### 方法三：下載預編譯版本
 
 從 [Releases 頁面](https://github.com/raohwork/forgejo-mcp/releases) 下載適合你作業系統的版本。
 
@@ -53,11 +63,7 @@ go install github.com/raohwork/forgejo-mcp@latest
 
 此工具提供兩種主要操作模式：`stdio` 用於本機整合，`http` 用於遠端存取。
 
-### Stdio 模式（適用於本機客戶端）
-
-這是與 Claude Desktop 或 Gemini CLI 等本機 AI 助理客戶端整合的建議模式。它使用標準輸入/輸出進行直接通訊。
-
-#### 1. 取得 Forgejo/Gitea 存取權杖
+在實際設定 MCP 客戶端之前，你必須先在 Forgejo/Gitea 伺服器上建立存取權杖。
 
 1. 登入你的 Forgejo/Gitea 實例
 2. 前往 **設定** → **應用程式** → **存取權杖**
@@ -65,20 +71,44 @@ go install github.com/raohwork/forgejo-mcp@latest
 4. 選擇適當的權限範圍（建議至少 `repository` 和 `issue` 的寫入權限）
 5. 複製產生的權杖
 
-#### 2. 設定你的 AI 客戶端
+💡 **提示**：為了安全起見，建議使用環境變數而不是直接在設定中使用權杖：
+```bash
+export FORGEJOMCP_SERVER="https://your-forgejo-instance.com"
+export FORGEJOMCP_TOKEN="your_access_token"
+```
 
-##### Claude Desktop
+### Stdio 模式（適用於本機客戶端）
 
-- **Windows**: 編輯 `%APPDATA%\Claude\claude_desktop_config.json`
-- **macOS**: 編輯 `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Linux**: 編輯 `~/.config/claude/claude_desktop_config.json`
+這是與 Claude Desktop 或 Gemini CLI 等本機 AI 助理客戶端整合的建議模式。它使用標準輸入/輸出進行直接通訊。
 
-新增以下設定：
+#### 設定你的 AI 客戶端
+
+使用 docker：
+
 ```json
 {
   "mcpServers": {
     "forgejo": {
-      "command": "forgejo-mcp",
+      "command": "docker",
+      "args": [
+        "--rm",
+        "ronmi/forgejo-mcp",
+        "stdio",
+        "--server", "https://your-forgejo-instance.com",
+        "--token", "your_access_token"
+      ]
+    }
+  }
+}
+```
+
+從原始碼安裝或預編譯版本：
+
+```json
+{
+  "mcpServers": {
+    "forgejo": {
+      "command": "/path/to/forgejo-mcp",
       "args": [
         "stdio",
         "--server", "https://your-forgejo-instance.com",
@@ -89,24 +119,7 @@ go install github.com/raohwork/forgejo-mcp@latest
 }
 ```
 
-##### Gemini CLI
-
-如果你使用 [Gemini CLI](https://github.com/google-gemini/gemini-cli)，請在你的設定檔中新增：
-
-```json
-{
-  "mcpServers": {
-    "forgejo": {
-      "command": "forgejo-mcp",
-      "args": [
-        "stdio",
-        "--server", "https://your-forgejo-instance.com",
-        "--token", "your_access_token"
-      ]
-    }
-  }
-}
-```
+你可能會想要參考 **安全性建議** 部分的最佳實踐。
 
 ### HTTP 伺服器模式（適用於遠端存取）
 
@@ -114,11 +127,15 @@ go install github.com/raohwork/forgejo-mcp@latest
 
 執行以下指令以啟動伺服器：
 ```bash
-forgejo-mcp http --address :8080 --server https://your-forgejo-instance.com
+# 使用本機執行檔
+/path/to/forgejo-mcp http --address :8080 --server https://your-forgejo-instance.com
+
+# 使用 docker
+docker run -p 8080:8080 -d --rm ronmi/forgejo-mcp http --address :8080 --server https://your-forgejo-instance.com
 ```
 
 伺服器支援兩種運作模式：
-- **單使用者模式**：如果在啟動時提供 `--token`，所有操作都將使用該權杖。
+- **單使用者模式**：如果在啟動時提供 `--token`（或環境變數 `FORGEJOMCP_TOKEN`），所有操作都將使用該權杖。
   ```bash
   forgejo-mcp http --address :8080 --server https://git.example.com --token your_token
   ```
@@ -142,7 +159,7 @@ forgejo-mcp http --address :8080 --server https://your-forgejo-instance.com
 }
 ```
 
-或 `http` 類型（URL 不同）
+或 `http` 類型（適用於 Streamable HTTP，使用不同的 URL 路徑）
 
 ```json
 {
@@ -162,27 +179,11 @@ forgejo-mcp http --address :8080 --server https://your-forgejo-instance.com
 
 ## 🛡️ 安全性建議
 
-1. **使用環境變數**：避免在設定檔中直接寫入權杖
-   ```bash
-   export FORGEJOMCP_SERVER="https://your-forgejo-instance.com"
-   export FORGEJOMCP_TOKEN="your_access_token"
-   ```
-   
-   然後從你的設定中移除 `--server` 和 `--token` 參數。
-   
-   對於 sse/http 類型，請更新你的設定：
-
-   ```json
-   {
-     "headers": {
-       "Authorization": "Bearer ${FORGEJOMCP_TOKEN}"
-     }
-   }
-   ```
+1. **使用環境變數**：設定 `FORGEJOMCP_SERVER` 和 `FORGEJOMCP_TOKEN`，然後從設定中移除 `--server` 和 `--token`
 
 2. **限制權杖權限**：只給予必要的權限範圍
 
-3. **定期輪換權杖**：建議定期更新存取權杖
+3. **定期輪換權杖**：定期更新存取權杖
 
 ## 📋 使用範例
 

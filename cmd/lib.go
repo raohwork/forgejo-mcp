@@ -16,6 +16,7 @@ import (
 	"github.com/raohwork/forgejo-mcp/tools/release"
 	"github.com/raohwork/forgejo-mcp/tools/repo"
 	"github.com/raohwork/forgejo-mcp/tools/wiki"
+	"github.com/raohwork/forgejo-mcp/types"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -102,7 +103,7 @@ func registerCommands(s *mcp.Server, cl *tools.Client) {
 func createServer(cl *tools.Client) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{
 		Title:   "Forgejo MCP Server",
-		Version: "0.0.1",
+		Version: types.VERSION[1:], // strip leading 'v'
 	}, &mcp.ServerOptions{
 		PageSize:     50,
 		Instructions: "An MCP server to interact with repositories on a Forgejo/Gitea instance.",

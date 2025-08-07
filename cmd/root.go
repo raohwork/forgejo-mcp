@@ -9,6 +9,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/raohwork/forgejo-mcp/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -17,8 +18,9 @@ var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "forgejo-mcp",
-	Short: "Forgejo MCP Server for Model Context Protocol clients",
+	Version: types.VERSION,
+	Use:     "forgejo-mcp",
+	Short:   "Forgejo MCP Server for Model Context Protocol clients",
 	Long: `Forgejo MCP Server provides Model Context Protocol integration
 for managing Gitea/Forgejo repositories through MCP-compatible clients.
 

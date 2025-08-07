@@ -29,6 +29,8 @@ jobs:
     - name: Run test
       run: go test -v ./...
 
+    - name: Overwrite version info
+      run: sed -i "s/dev-test/${GITHUB_REF_NAME}/" types/version.go
     - name: Prepare docker multiarch build
       uses: https://github.com/docker/setup-qemu-action@v3
     - name: Setup docker multiarch build

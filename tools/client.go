@@ -16,9 +16,10 @@ import (
 	"net/url"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
+	"github.com/raohwork/forgejo-mcp/types"
 )
 
-const UserAgent = "Forgejo-MCP/0.0.1"
+var UserAgent = "Forgejo-MCP/" + types.VERSION
 
 // Client wraps the Forgejo SDK client with additional functionality for
 // unsupported API endpoints. It provides methods for JSON requests and

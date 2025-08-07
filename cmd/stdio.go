@@ -40,20 +40,13 @@ Example:
 			os.Exit(1)
 		}
 
-		server := mcp.NewServer(&mcp.Implementation{
-			Title:   "Forgejo MCP Server",
-			Version: "0.0.1",
-		}, &mcp.ServerOptions{
-			PageSize:     50,
-			Instructions: "An MCP server to interact with repositories on a Forgejo instance.",
-		})
 		cl, err := tools.NewClient(base, token, "", nil)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error creating SDK client: %v\n", err)
 			os.Exit(1)
 		}
-		registerCommands(server, cl)
 
+		server := createServer(cl)
 		err = server.Run(context.TODO(), mcp.NewStdioTransport())
 		fmt.Fprintf(os.Stderr, "Server exited with error: %v\n", err)
 		if err != nil {

@@ -23,22 +23,25 @@ var rootCmd = &cobra.Command{
 for managing Gitea/Forgejo repositories through MCP-compatible clients.
 
 Supported operations:
-  - Issues (create, edit, comment, close)
+  - Issues (create, edit, comment, close, manage attachments, dependencies/blocking)
   - Labels (list, create, edit, delete)
   - Milestones (list, create, edit, delete)
-  - Releases (list, create, edit, delete, manage assets)
+  - Releases (list, create, edit, delete, manage attachments)
   - Pull requests (list, view)
   - Repository search and listing
-  - Wiki pages (create, edit, delete)
-  - Forgejo Actions tasks (view)
+  - Wiki pages (create, edit, delete, list)
+  - Forgejo Actions tasks (list)
 
 Available transport modes:
   - stdio: Standard input/output (best for local integration)
-  - sse: Server-Sent Events over HTTP (best for web apps)
-  - http: HTTP POST requests (best for simple integrations)
+  - http: HTTP server with SSE and Streamable HTTP support (best for web apps and remote access)
 
 Configure your Forgejo instance:
-  forgejo-mcp [mode] --server https://git.example.com --token your_token`,
+  forgejo-mcp [mode] --server https://git.example.com --token your_token
+
+Environment variables (alternative to command line arguments):
+  FORGEJOMCP_SERVER - Forgejo server URL
+  FORGEJOMCP_TOKEN  - Access token`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

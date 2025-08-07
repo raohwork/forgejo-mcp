@@ -98,3 +98,16 @@ func registerCommands(s *mcp.Server, cl *tools.Client) {
 	// Action tools
 	tools.Register(s, &action.ListActionTasksImpl{Client: cl})
 }
+
+func createServer(cl *tools.Client) *mcp.Server {
+	server := mcp.NewServer(&mcp.Implementation{
+		Title:   "Forgejo MCP Server",
+		Version: "0.0.1",
+	}, &mcp.ServerOptions{
+		PageSize:     50,
+		Instructions: "An MCP server to interact with repositories on a Forgejo/Gitea instance.",
+	})
+	registerCommands(server, cl)
+
+	return server
+}

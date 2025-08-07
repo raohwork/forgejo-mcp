@@ -49,24 +49,31 @@ go install github.com/raohwork/forgejo-mcp@latest
 
 從 [Releases 頁面](https://github.com/raohwork/forgejo-mcp/releases) 下載適合你作業系統的版本。
 
-## ⚙️ 設定
+## 🖥️ 使用方式
 
-### 1. 取得 Forgejo/Gitea 存取權杖
+此工具提供兩種主要操作模式：`stdio` 用於本機整合，`http` 用於遠端存取。
+
+### Stdio 模式（適用於本機客戶端）
+
+這是與 Claude Desktop 或 Gemini CLI 等本機 AI 助理客戶端整合的建議模式。它使用標準輸入/輸出進行直接通訊。
+
+#### 1. 取得 Forgejo/Gitea 存取權杖
 
 1. 登入你的 Forgejo/Gitea 實例
-2. 進入 **設定** → **應用程式** → **存取權杖**
+2. 前往 **設定** → **應用程式** → **存取權杖**
 3. 點擊 **產生新權杖**
-4. 選擇適當的權限範圍（建議至少包含 `repository` 和 `issue` 的寫入權限）
+4. 選擇適當的權限範圍（建議至少 `repository` 和 `issue` 的寫入權限）
 5. 複製產生的權杖
 
-### 2. 設定 MCP 客戶端
+#### 2. 設定你的 AI 客戶端
 
-## 🖥️ Claude Desktop
+##### Claude Desktop
 
-### Windows
+- **Windows**: 編輯 `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS**: 編輯 `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Linux**: 編輯 `~/.config/claude/claude_desktop_config.json`
 
-編輯 `%APPDATA%\Claude\claude_desktop_config.json`：
-
+新增以下設定：
 ```json
 {
   "mcpServers": {
@@ -82,59 +89,76 @@ go install github.com/raohwork/forgejo-mcp@latest
 }
 ```
 
-### macOS
-
-編輯 `~/Library/Application Support/Claude/claude_desktop_config.json`：
-
-```json
-{
-  "mcpServers": {
-    "forgejo": {
-      "command": "forgejo-mcp",
-      "args": [
-        "stdio", 
-        "--server", "https://your-forgejo-instance.com",
-        "--token", "your_access_token"
-      ]
-    }
-  }
-}
-```
-
-### Linux
-
-編輯 `~/.config/claude/claude_desktop_config.json`：
-
-```json
-{
-  "mcpServers": {
-    "forgejo": {
-      "command": "forgejo-mcp",
-      "args": [
-        "stdio",
-        "--server", "https://your-forgejo-instance.com", 
-        "--token", "your_access_token"
-      ]
-    }
-  }
-}
-```
-
-## 💎 Gemini CLI
+##### Gemini CLI
 
 如果你使用 [Gemini CLI](https://github.com/google-gemini/gemini-cli)，請在你的設定檔中新增：
 
-```yaml
-mcp_servers:
-  forgejo:
-    command: forgejo-mcp
-    args:
-      - stdio  
-      - --server
-      - https://your-forgejo-instance.com
-      - --token
-      - your_access_token
+```json
+{
+  "mcpServers": {
+    "forgejo": {
+      "command": "forgejo-mcp",
+      "args": [
+        "stdio",
+        "--server", "https://your-forgejo-instance.com",
+        "--token", "your_access_token"
+      ]
+    }
+  }
+}
 ```
+
+### HTTP 伺服器模式（適用於遠端存取）
+
+此模式會啟動一個 HTTP 伺服器，允許遠端客戶端透過 HTTP 連線。它非常適合網頁服務或為多個使用者設定中央閘道。
+
+執行以下指令以啟動伺服器：
+```bash
+forgejo-mcp http --address :8080 --server https://your-forgejo-instance.com
+```
+
+伺服器支援兩種運作模式：
+- **單使用者模式**：如果在啟動時提供 `--token`，所有操作都將使用該權杖。
+  ```bash
+  forgejo-mcp http --address :8080 --server https://git.example.com --token your_token
+  ```
+- **多使用者模式**：如果未提供 `--token`，伺服器會要求客戶端在每個請求中發送 `Authorization: Bearer <token>` 標頭，從而安全地為多個使用者提供服務。
+
+#### 客戶端設定
+
+對於支援透過 HTTP 連線到遠端 MCP 伺服器的客戶端，你可以新增如下設定。此範例展示如何連線到以多使用者模式運行的伺服器：
+
+```json
+{
+  "mcpServers": {
+    "forgejo-remote": {
+      "type": "sse",
+      "url": "http://localhost:8080/sse",
+      "headers": {
+        "Authorization": "Bearer your_token"
+      }
+    }
+  }
+}
+```
+
+或 `http` 類型（URL 不同）
+
+```json
+{
+  "mcpServers": {
+    "forgejo-remote": {
+      "type": "http",
+      "url": "http://localhost:8080/",
+      "headers": {
+        "Authorization": "Bearer your_token"
+      }
+    }
+  }
+}
+```
+
+如果連線到單使用者模式的伺服器，你可以省略 `headers` 欄位。
 
 ## 🛡️ 安全性建議
 
@@ -144,7 +168,17 @@ mcp_servers:
    export FORGEJOMCP_TOKEN="your_access_token"
    ```
    
-   然後在設定中移除 `--server` 和 `--token` 參數。
+   然後從你的設定中移除 `--server` 和 `--token` 參數。
+   
+   對於 sse/http 類型，請更新你的設定：
+
+   ```json
+   {
+     "headers": {
+       "Authorization": "Bearer ${FORGEJOMCP_TOKEN}"
+     }
+   }
+   ```
 
 2. **限制權杖權限**：只給予必要的權限範圍
 
@@ -155,13 +189,11 @@ mcp_servers:
 設定完成後，你就可以在 AI 助手中使用自然語言來管理你的倉庫了：
 
 ```
-「幫我查看 user/myproject 倉庫中所有標記為 'bug' 且狀態為 'open' 的議題」
+「顯示我的 gitea 伺服器上這個 repo 的嚴重錯誤報告」
 
-「在 user/myproject 倉庫建立一個新議題，標題是『修正登入問題』，內容包含重現步驟」
+「根據我們上面的討論，建立一個關於此錯誤的詳細議題，然後在議題上留言說明我們將如何修復它。」
 
-「幫我將議題 #123 標記為 'urgent' 和 'backend'」
-
-「列出 user/myproject 倉庫的所有里程碑，並告訴我哪些即將到期」
+「給我一份關於當前里程碑的報告，特別是最近的進展。」
 
 「分析最近的 pull request，告訴我哪些需要優先審查」
 ```

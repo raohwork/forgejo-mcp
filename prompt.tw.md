@@ -58,10 +58,10 @@ AI 助手在 **未來* 需要利用以下資訊來組合出給使用者的 `curl
     - [x] 從檔案中移除 `CreateIssueAttachmentParams` struct, `CreateIssueAttachmentImpl` struct, 以及它對應的 `Definition()` 和 `Handler()` 方法。
     - [x] **注意**：請勿移除檔案中其他 (如 `List`, `Delete`, `Edit`) 的工具實作。
 - [ ] 人工審查
-- [ ] **第二階段：移除 Release Attachment 建立工具**
-    - [ ] 讀取 `tools/release/attach.go`。
-    - [ ] 從檔案中移除 `CreateReleaseAttachmentParams` struct, `CreateReleaseAttachmentImpl` struct, 以及它對應的 `Definition()` 和 `Handler()` 方法。
-    - [ ] **注意**：請勿移除檔案中其他 (如 `List`, `Delete`, `Edit`) 的工具實作。
+- [x] **第二階段：移除 Release Attachment 建立工具**
+    - [x] 讀取 `tools/release/attach.go`。
+    - [x] 從檔案中移除 `CreateReleaseAttachmentParams` struct, `CreateReleaseAttachmentImpl` struct, 以及它對應的 `Definition()` 和 `Handler()` 方法。
+    - [x] **注意**：請勿移除檔案中其他 (如 `List`, `Delete`, `Edit`) 的工具實作。
 - [ ] 人工審查
 - [ ] **第三階段：移除 Client 的附件上傳方法**
     - [ ] 讀取 `tools/client_issue_attachments.go`。

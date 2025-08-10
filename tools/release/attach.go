@@ -9,8 +9,6 @@ package release
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
@@ -101,109 +99,6 @@ func (impl ListReleaseAttachmentsImpl) Handler() mcp.ToolHandlerFor[ListReleaseA
 			Content: []mcp.Content{
 				&mcp.TextContent{
 					Text: content,
-				},
-			},
-		}, nil
-	}
-}
-
-// CreateReleaseAttachmentParams defines the parameters for creating a release attachment.
-// It specifies the release and the local file path of the asset to upload.
-type CreateReleaseAttachmentParams struct {
-	// Owner is the username or organization name that owns the repository.
-	Owner string `json:"owner"`
-	// Repo is the name of the repository.
-	Repo string `json:"repo"`
-	// ReleaseID is the unique identifier of the release to attach the file to.
-	ReleaseID int `json:"release_id"`
-	// FilePath is the local path to the file to be uploaded as an attachment.
-	FilePath string `json:"file_path"`
-	// Name is an optional display name for the attachment.
-	Name string `json:"name,omitempty"`
-}
-
-// CreateReleaseAttachmentImpl implements the MCP tool for adding an attachment to a release.
-// This is a non-idempotent operation that uploads a file from the local filesystem
-// to the specified release using the Forgejo SDK.
-type CreateReleaseAttachmentImpl struct {
-	Client *tools.Client
-}
-
-// Definition describes the `create_release_attachment` tool. It requires `release_id`
-// and a local `file_path`. It is not idempotent, as multiple calls will upload
-// multiple files.
-func (CreateReleaseAttachmentImpl) Definition() *mcp.Tool {
-	return &mcp.Tool{
-		Name:        "create_release_attachment",
-		Title:       "Add Release Attachment",
-		Description: "Add an attachment to a release.",
-		Annotations: &mcp.ToolAnnotations{
-			ReadOnlyHint:    false,
-			DestructiveHint: tools.BoolPtr(false),
-			IdempotentHint:  false,
-		},
-		InputSchema: &jsonschema.Schema{
-			Type: "object",
-			Properties: map[string]*jsonschema.Schema{
-				"owner": {
-					Type:        "string",
-					Description: "Repository owner (username or organization name)",
-				},
-				"repo": {
-					Type:        "string",
-					Description: "Repository name",
-				},
-				"release_id": {
-					Type:        "integer",
-					Description: "Release ID",
-				},
-				"file_path": {
-					Type:        "string",
-					Description: "Path to the file to attach",
-				},
-				"name": {
-					Type:        "string",
-					Description: "Optional display name for the attachment (defaults to filename)",
-				},
-			},
-			Required: []string{"owner", "repo", "release_id", "file_path"},
-		},
-	}
-}
-
-// Handler implements the logic for creating a release attachment. It reads the file
-// from the specified `file_path`, then calls the Forgejo SDK's `CreateReleaseAttachment`
-// function to upload it. It will return an error if the file cannot be read.
-func (impl CreateReleaseAttachmentImpl) Handler() mcp.ToolHandlerFor[CreateReleaseAttachmentParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[CreateReleaseAttachmentParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
-
-		// Open and read the file
-		file, err := os.Open(p.FilePath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to open file: %w", err)
-		}
-		defer file.Close()
-
-		// Determine filename
-		filename := p.Name
-		if filename == "" {
-			filename = filepath.Base(p.FilePath)
-		}
-
-		// Call SDK
-		attachment, _, err := impl.Client.CreateReleaseAttachment(p.Owner, p.Repo, int64(p.ReleaseID), file, filename)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create release attachment: %w", err)
-		}
-
-		// Convert to our type and format
-		attachmentWrapper := &types.Attachment{Attachment: attachment}
-
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: attachmentWrapper.ToMarkdown(),
 				},
 			},
 		}, nil

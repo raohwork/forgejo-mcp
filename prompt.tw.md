@@ -1,220 +1,102 @@
 # 需求說明
 
-我們要新增 issue blocking 相關的 MCP tool，包括了
+根據 issue #1 的決議，我們需要 **移除** issue 和 release 的附件上傳工具 (`create_issue_attachment`, `create_release_attachment`)。
 
-- ListIssueBlockingImpl
-- AddIssueBlockingImpl
-- RemoveIssueBlockingImpl
+# 功能變更說明
 
-這組工具與現有的 issue dependency 工具形成完整的雙向關係。
+## 原有流程 (即將移除)
 
-# 功能說明與語義差異
+AI 助手透過 `create_issue_attachment` 或 `create_release_attachment` 工具直接上傳檔案。這需要 AI 讀取完整的檔案內容，或者依賴 MCP server 存取本地檔案系統。
 
-## Issue Dependencies vs Issue Blocking
+## 全新流程
 
-**Issue Dependencies (現有)**：
-- 查詢會阻塞當前 issue 的其他 issues
-- 語義：`#123 depends on #234` → 必須先關閉 #234 才能關閉 #123
-- API: `/repos/{owner}/{repo}/issues/{index}/dependencies`
+當使用者需要上傳附件時，AI 助手將 **不再呼叫工具**。取而代之的是，AI 助手會根據當前的上下文 (issue 或 release)，動態生成一段可執行的 `curl` 命令，並提供給使用者。使用者只需複製這段命令到自己的終端機中執行，即可完成上傳。
 
-**Issue Blocking (新增)**：
-- 查詢被當前 issue 阻塞的其他 issues
-- 語義：`#123 blocks #234` → 必須先關閉 #123 才能關閉 #234
-- API: `/repos/{owner}/{repo}/issues/{index}/blocks`
-
-## 實際用例對比
-
-假設 issue #123 "修復登入 bug"，issue #234 "更新用戶介面"：
-
-**Dependencies 查詢 #234**：
-- 回傳：[#123]
-- 含義：#234 被 #123 阻塞，必須先修復登入 bug
-
-**Blocking 查詢 #123**：
-- 回傳：[#234]
-- 含義：#123 阻塞了 #234，修復登入後才能更新介面
+這個變更將 AI 的職責限定在「生成指令」，而將「執行指令」的責任交還給使用者，從而解決了底層的技術複雜性。
 
 # 技術實作原因
 
-- 現有的 dependency 工具只能單向查詢，無法反向查詢哪些 issues 被當前 issue 阻塞
-- Forgejo API 提供了對稱的 `/blocks` 端點，我們應該完整支援
-- 使用者在專案管理時需要雙向視角：既要知道自己被誰阻塞，也要知道自己阻塞了誰
-- 與現有 dependency 工具共用大部分程式碼，開發成本低但價值高
+- **高昂的 Token 消耗**：舊方法若讓 AI 讀取檔案內容，會大量消耗寶貴的 context token，尤其是在處理大型檔案時。
+- **檔案系統存取限制**：讓 MCP server 透過檔案路徑存取使用者本地檔案，在不同執行模式下會遇到權限和路徑問題。
+- **職責分離**：新流程明確區分了 AI 和使用者的職責，讓架構更清晰、更健壯。
 
-# API 端點分析
+# API 端點分析 (供 AI 生成 curl 命令參考)
 
-根據 `swagger.v1.json` 的定義：
+AI 助手在 **未來* 需要利用以下資訊來組合出給使用者的 `curl` 指令。
 
-## GET `/repos/{owner}/{repo}/issues/{index}/blocks`
-- **功能**：List issues that are blocked by this issue
-- **回傳**：`[]*forgejo.Issue` (與 dependencies 相同格式)
-- **參數**：支援 page, limit 分頁參數
+## Issue 附件上傳
 
-## POST `/repos/{owner}/{repo}/issues/{index}/blocks`
-- **功能**：Block the issue given in the body by the issue in path
-- **請求體**：`IssueMeta` (與 MyIssueMeta 相同結構)
-- **回傳**：`*forgejo.Issue`
+- **Endpoint**: `POST /api/v1/repos/{owner}/{repo}/issues/{index}/assets`
+- **Content-Type**: `multipart/form-data`
+- **curl 命令樣板**:
+  ```bash
+  curl -X POST "${FORGEJO_SERVER}/api/v1/repos/{owner}/{repo}/issues/{index}/assets" \
+    -H "Authorization: token ${FORGEJOMCP_TOKEN}" \
+    -F "attachment=@/absolute/path/to/file" \
+    -F "name=optional-display-name"
+  ```
 
-## DELETE `/repos/{owner}/{repo}/issues/{index}/blocks`
-- **功能**：Unblock the issue given in the body by the issue in path
-- **請求體**：`IssueMeta`
-- **回傳**：`*forgejo.Issue`
+## Release 附件上傳
+
+- **Endpoint**: `POST /api/v1/repos/{owner}/{repo}/releases/{id}/assets`
+- **Content-Type**: `multipart/form-data` 或 `application/octet-stream`
+- **curl 命令樣板**:
+  ```bash
+  curl -X POST "${FORGEJO_SERVER}/api/v1/repos/{owner}/{repo}/releases/{id}/assets" \
+    -H "Authorization: token ${FORGEJOMCP_TOKEN}" \
+    -F "attachment=@/absolute/path/to/file" \
+    -F "name=optional-display-name"
+  ```
 
 # 執行步驟
 
 具體的作業步驟如下: (已完成的步驟不需重複確認)
 
-- [x] 開新的 branch `feature/issue-blocking`
-- [x] **第一階段：擴展類型定義**
-    - [x] 在 `types/dependencies.go` 中新增 `IssueBlockingList` 類型 (基於 `[]*forgejo.Issue`)
-    - [x] 為 `IssueBlockingList` 實作 `ToMarkdown()` 方法，格式與 `IssueDependencyList` 相同但空值訊息不同
-    - [x] 檢查編譯，確保新類型定義正確
-- [x] 人工審查
-- [x] **第二階段：實作 Client 方法**
-    - [x] 在 `tools/client_issue_dependencies.go` 新增三個方法：
-      - `MyListIssueBlocking(owner, repo string, index int64) ([]*forgejo.Issue, error)`
-      - `MyAddIssueBlocking(owner, repo string, index int64, blocked types.MyIssueMeta) (*forgejo.Issue, error)`
-      - `MyRemoveIssueBlocking(owner, repo string, index int64, blocked types.MyIssueMeta) (*forgejo.Issue, error)`
-    - [x] 檢查編譯，確保 client 方法實作正確
-- [x] 人工審查
-- [x] **第三階段：實作 MCP 工具 - List**
-    - [x] 在 `tools/issue/dep.go` 新增 `ListIssueBlockingImpl` 結構及相關類型
-    - [x] 實作 `Definition()` 方法，工具名稱為 `list_issue_blocking`
-    - [x] 實作 `Handler()` 方法，輸出標頭為 `"## Issues blocked by #%d"`
-    - [x] 使用 `IssueBlockingList.ToMarkdown()` 進行格式化
-    - [x] 檢查編譯和基本功能測試
-- [x] 人工審查
-- [x] **第四階段：實作 MCP 工具 - Add/Remove**
-    - [x] 在 `tools/issue/dep.go` 新增 `AddIssueBlockingImpl` 和 `RemoveIssueBlockingImpl`
-    - [x] 實作對應的 `Definition()` 方法，工具名稱為 `add_issue_blocking` 和 `remove_issue_blocking`
-    - [x] 實作 `Handler()` 方法，使用 `EmptyResponse` 回傳簡潔訊息：
-      - Add: `"Issue #%d now blocks issue #%d"`
-      - Remove: `"Issue #%d no longer blocks issue #%d"`
-    - [x] 注意參數順序：blocking issue 在前，blocked issue 在後
-    - [x] 檢查編譯和基本功能測試
-- [x] 人工審查
-- [x] **第五階段：註冊工具到 MCP**
-    - [x] 在 `cmd/lib.go` 的工具註冊列表中新增三個新工具
-    - [x] 檢查完整編譯和工具可用性
-- [x] 人工審查
-- [x] **第六階段：測試與驗證**
-    - [x] 新增對應測試到 `types/misc_test.go` 測試 `IssueBlockingList.ToMarkdown()`
-    - [x] 把 `types/misc_test.go` 改名為 `types/dependencies_test.go`
-    - [x] 執行 `go test ./...` 確保所有測試通過
-    - [x] 執行 `go build ./...` 確保完整編譯成功
-- [x] 人工審查
+- [ ] **準備工作：建立新的 branch**
+- [x] **第一階段：移除 Issue Attachment 建立工具**
+    - [x] 讀取 `tools/issue/attach.go`。
+    - [x] 從檔案中移除 `CreateIssueAttachmentParams` struct, `CreateIssueAttachmentImpl` struct, 以及它對應的 `Definition()` 和 `Handler()` 方法。
+    - [x] **注意**：請勿移除檔案中其他 (如 `List`, `Delete`, `Edit`) 的工具實作。
+- [ ] 人工審查
+- [x] **第二階段：移除 Release Attachment 建立工具**
+    - [x] 讀取 `tools/release/attach.go`。
+    - [x] 從檔案中移除 `CreateReleaseAttachmentParams` struct, `CreateReleaseAttachmentImpl` struct, 以及它對應的 `Definition()` 和 `Handler()` 方法。
+    - [x] **注意**：請勿移除檔案中其他 (如 `List`, `Delete`, `Edit`) 的工具實作。
+- [ ] 人工審查
+- [x] **第三階段：移除 Client 的附件上傳方法**
+    - [x] 讀取 `tools/client_issue_attachments.go`。
+    - [x] 從檔案中移除 `MyCreateIssueAttachment` 函式。
+    - [x] **注意**：請勿移除檔案中其他 (如 `List`, `Delete`, `Edit`) 的 client 方法。
+- [ ] 人工審查
+- [x] **第四階段：移除工具註冊**
+    - [x] 讀取 `cmd/lib.go` 檔案。
+    - [x] 在工具註冊列表中，找到並移除 `issue.CreateIssueAttachmentImpl` 和 `release.CreateReleaseAttachmentImpl` 的註冊程式碼。
+    - [x] 執行 `go build ./...`，預期此時應該能成功編譯。
+- [ ] 人工審查
+- [x] **第五階段：清理測試案例與最終確認**
+    - [x] 檢查 `tools/client_test.go`，移除與 `MyCreateIssueAttachment` 相關的測試程式碼。
+    - [x] 執行 `go test ./...` 確保所有測試仍然通過。
+    - [x] 執行 `go mod tidy` 整理相依性。
+- [ ] 人工審查
 
-你 **必須** 在完成每一個步驟之後，進入下一個步驟之前，先更新這個檔案，把對應的步驟標記為完成
+你 **必須** 在完成每一個步驟之後，進入下一個步驟之前，先更新這個檔案，把對應的步驟標記為完成。
 
 # 意外中斷回復指南
 
 如果開發過程中意外中斷，請按以下步驟回復：
 
-## 1. 確認當前狀態
-```bash
-git status                    # 檢查工作目錄狀態
-git branch                    # 確認當前分支
-git log --oneline -5          # 檢查最近提交記錄
-```
-
-## 2. 檢查編譯狀態
-```bash
-go build ./...                # 確保程式碼可編譯
-go test ./...                 # 執行測試檢查狀態
-```
-
-## 3. 查看進度標記
-檢查此檔案 (prompt.tw.md) 中的進度標記，確認已完成的步驟
-
-## 4. 重新開始的關鍵資訊
-
-### 類型定義參考 (types/dependencies.go)
-```go
-// 需新增的類型
-type IssueBlockingList []*forgejo.Issue
-
-func (ibl IssueBlockingList) ToMarkdown() string {
-    if len(ibl) == 0 {
-        return "*This issue is not blocking any other issues*"
-    }
-
-    markdown := ""
-    for _, issue := range ibl {
-        if issue == nil {
-            continue
-        }
-        markdown += fmt.Sprintf("#%d **%s** (%s)\n", issue.Index, issue.Title, issue.State)
-    }
-
-    return markdown
-}
-```
-
-### Client 方法簽名 (`tools/client_issue_dependencies.go`)
-```go
-func (c *Client) MyListIssueBlocking(owner, repo string, index int64) ([]*forgejo.Issue, error) {
-    endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/blocks", owner, repo, index)
-    var issues []*forgejo.Issue
-    err := c.sendSimpleRequest("GET", endpoint, nil, &issues)
-    return issues, err
-}
-
-func (c *Client) MyAddIssueBlocking(owner, repo string, index int64, blocked types.MyIssueMeta) (*forgejo.Issue, error) {
-    endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/blocks", owner, repo, index)
-    var issue *forgejo.Issue
-    err := c.sendSimpleRequest("POST", endpoint, blocked, &issue)
-    return issue, err
-}
-
-func (c *Client) MyRemoveIssueBlocking(owner, repo string, index int64, blocked types.MyIssueMeta) (*forgejo.Issue, error) {
-    endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/blocks", owner, repo, index)
-    var issue *forgejo.Issue
-    err := c.sendSimpleRequest("DELETE", endpoint, blocked, &issue)
-    return issue, err
-}
-```
-
-### MCP 工具註冊位置 (cmd/lib.go)
-在 `tools.RegisterTool()` 呼叫列表中新增：
-```go
-tools.RegisterTool(toolRegistry, &issue.ListIssueBlockingImpl{Client: client})
-tools.RegisterTool(toolRegistry, &issue.AddIssueBlockingImpl{Client: client})
-tools.RegisterTool(toolRegistry, &issue.RemoveIssueBlockingImpl{Client: client})
-```
-
-### 輸出訊息格式
-- **List**: `fmt.Sprintf("## Issues blocked by #%d\n\n%s", p.Index, blockingList.ToMarkdown())`
-- **Add**: `fmt.Sprintf("Issue #%d now blocks issue #%d", p.Index, p.BlockedIndex)` (使用 `EmptyResponse`)
-- **Remove**: `fmt.Sprintf("Issue #%d no longer blocks issue #%d", p.Index, p.BlockedIndex)` (使用 `EmptyResponse`)
-
-### 測試檔案參考 (types/misc_test.go)
-需新增 `TestIssueBlockingList_ToMarkdown` 測試，格式參考現有 `TestIssueDependencyList_ToMarkdown`
-
-## 5. 常見問題排除
-- **編譯錯誤**：檢查 import 路徑，確保 `types` package 正確引用
-- **工具未註冊**：檢查 `cmd/lib.go` 中的註冊呼叫
-- **API 呼叫失敗**：檢查 endpoint 路徑和 HTTP method 是否正確
-- **測試失敗**：檢查輸出格式是否與預期一致
+1.  **確認當前狀態**: `git status` 以及 `go build ./...`
+2.  **查看進度標記**：檢查此檔案 (`prompt.tw.md`) 中的進度標記。
+3.  **重新開始的關鍵資訊**:
+    - **要修改的檔案**:
+        - `tools/issue/attach.go` (移除 Create...)
+        - `tools/release/attach.go` (移除 Create...)
+        - `tools/client_issue_attachments.go` (移除 MyCreateIssueAttachment)
+        - `cmd/lib.go` (移除工具註冊)
+        - `tools/client_test.go` (移除相關測試)
+    - **不應刪除的檔案**: `types/attachments.go` 仍然被其他功能使用。
 
 # 開發時必備知識
 
-## Forgejo SDK 類型重用
-- `*forgejo.Issue`: 完整的 issue 物件，包含 Index, Title, State 等欄位
-- `MyIssueMeta`: 自定義類型，用於 API 請求，包含 Index, Owner, Name 欄位
-- 兩種類型可以在同一個檔案中共存，各有不同用途
-
-## MCP 工具模式
-- `ToolImpl` interface: 需實作 `Definition()` 和 `Handler()` 方法
-- `Definition()`: 定義工具元資訊，包含 name, description, parameters
-- `Handler()`: 實際執行邏輯，回傳 `*mcp.CallToolResult`
-
-## HTTP Client 模式
-- `sendSimpleRequest()`: 用於 JSON API 呼叫
-- GET 請求：paramObj 傳 nil
-- POST/DELETE 請求：paramObj 傳請求體物件
-- respObj 用於接收回應資料
-
-## 語義對稱性設計原則
-- Dependencies: "issues that block this issue" (被動視角)
-- Blocking: "issues blocked by this issue" (主動視角)
-- 兩者形成完整的雙向關係，在訊息措辭上保持對稱但意義相反
+- **精確修改**: 本次任務是外科手術式的程式碼移除，不是刪除整個檔案。需仔細辨識要移除的 struct 和 function。
+- **由編譯錯誤驅動開發**: `go build ./...` 是你的好朋友，它會告訴你修改是否完整、有沒有遺漏。

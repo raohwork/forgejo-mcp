@@ -8,7 +8,6 @@ package tools
 
 import (
 	"fmt"
-	"io"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 )
@@ -31,28 +30,6 @@ func (c *Client) MyListIssueAttachments(owner, repo string, index int64) ([]*for
 	}
 
 	return result, nil
-}
-
-// MyCreateIssueAttachment creates a new attachment for an issue.
-// POST /repos/{owner}/{repo}/issues/{index}/assets
-func (c *Client) MyCreateIssueAttachment(owner, repo string, index int64, filename string, file io.Reader, name string, updatedAt string) (*forgejo.Attachment, error) {
-	endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets", owner, repo, index)
-
-	extraFields := make(map[string]string)
-	if name != "" {
-		extraFields["name"] = name
-	}
-	if updatedAt != "" {
-		extraFields["updated_at"] = updatedAt
-	}
-
-	var result forgejo.Attachment
-	err := c.sendUploadRequest(endpoint, filename, file, extraFields, &result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result, nil
 }
 
 // MyDeleteIssueAttachment deletes an attachment from an issue.

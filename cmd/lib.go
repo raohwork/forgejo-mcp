@@ -41,7 +41,6 @@ func registerCommands(s *mcp.Server, cl *tools.Client) {
 
 	// Issue attachment tools
 	tools.Register(s, &issue.ListIssueAttachmentsImpl{Client: cl})
-	tools.Register(s, &issue.CreateIssueAttachmentImpl{Client: cl})
 	tools.Register(s, &issue.DeleteIssueAttachmentImpl{Client: cl})
 	tools.Register(s, &issue.EditIssueAttachmentImpl{Client: cl})
 
@@ -75,7 +74,6 @@ func registerCommands(s *mcp.Server, cl *tools.Client) {
 
 	// Release attachment tools
 	tools.Register(s, &release.ListReleaseAttachmentsImpl{Client: cl})
-	tools.Register(s, &release.CreateReleaseAttachmentImpl{Client: cl})
 	tools.Register(s, &release.EditReleaseAttachmentImpl{Client: cl})
 	tools.Register(s, &release.DeleteReleaseAttachmentImpl{Client: cl})
 

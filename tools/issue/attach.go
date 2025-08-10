@@ -8,10 +8,8 @@ package issue
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -93,111 +91,6 @@ func (impl ListIssueAttachmentsImpl) Handler() mcp.ToolHandlerFor[ListIssueAttac
 			Content: []mcp.Content{
 				&mcp.TextContent{
 					Text: fmt.Sprintf("# Issue #%d Attachments\n\n%s", p.Index, attachmentList.ToMarkdown()),
-				},
-			},
-		}, nil
-	}
-}
-
-// CreateIssueAttachmentParams defines the parameters for creating an issue attachment.
-// It specifies the issue and the local file path of the asset to upload.
-type CreateIssueAttachmentParams struct {
-	// Owner is the username or organization name that owns the repository.
-	Owner string `json:"owner"`
-	// Repo is the name of the repository.
-	Repo string `json:"repo"`
-	// Index is the issue number to attach the file to.
-	Index int `json:"index"`
-	// Filename is the name of the file to be uploaded.
-	Filename string `json:"filename"`
-	// Content is the base64-encoded content of the file.
-	Content string `json:"content"`
-	// Name is an optional display name for the attachment.
-	Name string `json:"name,omitempty"`
-}
-
-// CreateIssueAttachmentImpl implements the MCP tool for adding an attachment to an issue.
-// This is a non-idempotent operation that uploads a file from the local filesystem.
-// Note: This feature is not supported by the official Forgejo SDK and requires a
-// custom HTTP implementation.
-type CreateIssueAttachmentImpl struct {
-	Client *tools.Client
-}
-
-// Definition describes the `create_issue_attachment` tool. It requires the issue `index`
-// and a local `file_path`. It is not idempotent, as multiple calls will upload
-// multiple files.
-func (CreateIssueAttachmentImpl) Definition() *mcp.Tool {
-	return &mcp.Tool{
-		Name:        "create_issue_attachment",
-		Title:       "Add Issue Attachment",
-		Description: "Add a file attachment to an issue.",
-		Annotations: &mcp.ToolAnnotations{
-			ReadOnlyHint:    false,
-			DestructiveHint: tools.BoolPtr(false),
-			IdempotentHint:  false,
-		},
-		InputSchema: &jsonschema.Schema{
-			Type: "object",
-			Properties: map[string]*jsonschema.Schema{
-				"owner": {
-					Type:        "string",
-					Description: "Repository owner (username or organization name)",
-				},
-				"repo": {
-					Type:        "string",
-					Description: "Repository name",
-				},
-				"index": {
-					Type:        "integer",
-					Description: "Issue index number",
-				},
-				"filename": {
-					Type:        "string",
-					Description: "Name of the file to attach",
-				},
-				"content": {
-					Type:        "string",
-					Description: "Base64-encoded content of the file",
-				},
-				"name": {
-					Type:        "string",
-					Description: "Optional display name for the attachment (defaults to filename)",
-				},
-			},
-			Required: []string{"owner", "repo", "index", "filename", "content"},
-		},
-	}
-}
-
-// Handler implements the logic for creating an issue attachment. It decodes the
-// base64 content and performs a custom HTTP POST request to upload it.
-func (impl CreateIssueAttachmentImpl) Handler() mcp.ToolHandlerFor[CreateIssueAttachmentParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[CreateIssueAttachmentParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
-
-		// Decode base64 content
-		content, err := base64.StdEncoding.DecodeString(p.Content)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode base64 content: %w", err)
-		}
-
-		// Create a reader from the decoded content
-		file := strings.NewReader(string(content))
-
-		// Use the custom client method to create the attachment
-		attachment, err := impl.Client.MyCreateIssueAttachment(p.Owner, p.Repo, int64(p.Index), p.Filename, file, p.Name, "")
-		if err != nil {
-			return nil, fmt.Errorf("failed to create issue attachment: %w", err)
-		}
-
-		// Convert to types.Attachment for consistent formatting
-		result := &types.Attachment{Attachment: attachment}
-
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: fmt.Sprintf("# Issue Attachment Created\n\n%s", result.ToMarkdown()),
 				},
 			},
 		}, nil

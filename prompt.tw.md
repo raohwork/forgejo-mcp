@@ -68,15 +68,15 @@ AI 助手在 **未來* 需要利用以下資訊來組合出給使用者的 `curl
     - [x] 從檔案中移除 `MyCreateIssueAttachment` 函式。
     - [x] **注意**：請勿移除檔案中其他 (如 `List`, `Delete`, `Edit`) 的 client 方法。
 - [ ] 人工審查
-- [ ] **第四階段：移除工具註冊**
-    - [ ] 讀取 `cmd/lib.go` 檔案。
-    - [ ] 在工具註冊列表中，找到並移除 `issue.CreateIssueAttachmentImpl` 和 `release.CreateReleaseAttachmentImpl` 的註冊程式碼。
-    - [ ] 執行 `go build ./...`，預期此時應該能成功編譯。
+- [x] **第四階段：移除工具註冊**
+    - [x] 讀取 `cmd/lib.go` 檔案。
+    - [x] 在工具註冊列表中，找到並移除 `issue.CreateIssueAttachmentImpl` 和 `release.CreateReleaseAttachmentImpl` 的註冊程式碼。
+    - [x] 執行 `go build ./...`，預期此時應該能成功編譯。
 - [ ] 人工審查
-- [ ] **第五階段：清理測試案例與最終確認**
-    - [ ] 檢查 `tools/client_test.go`，移除與 `MyCreateIssueAttachment` 相關的測試程式碼。
-    - [ ] 執行 `go test ./...` 確保所有測試仍然通過。
-    - [ ] 執行 `go mod tidy` 整理相依性。
+- [x] **第五階段：清理測試案例與最終確認**
+    - [x] 檢查 `tools/client_test.go`，移除與 `MyCreateIssueAttachment` 相關的測試程式碼。
+    - [x] 執行 `go test ./...` 確保所有測試仍然通過。
+    - [x] 執行 `go mod tidy` 整理相依性。
 - [ ] 人工審查
 
 你 **必須** 在完成每一個步驟之後，進入下一個步驟之前，先更新這個檔案，把對應的步驟標記為完成。

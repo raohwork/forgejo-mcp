@@ -168,4 +168,14 @@ jq '.paths["/repos/{owner}/{repo}/labels/{id}"].patch' swagger.v1.json
 #
 # Change "summary" to "parameters" or "responses" to get params/responses
 jq '.paths["/repos/{owner}/{repo}/labels/{id}"].patch.summary' swagger.v1.json
+
+# Get referenced type definition
+#
+# for "$refs": "#/abc/def"
+jq '.abc.def' swagger.v1.json
 ```
+
+## Additional tools
+
+- `my-git-server`: Tools to access remote git server. The repository is `ronmi/forgejo-mcp`.
+- `gopls`: Go language server to query for difinitions, references, and more.

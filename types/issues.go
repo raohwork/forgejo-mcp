@@ -78,9 +78,9 @@ func (c *Comment) ToMarkdown() string {
 	if c.Comment == nil {
 		return "*Invalid comment*"
 	}
-	markdown := ""
+	markdown := fmt.Sprintf("Comment#%d", c.ID)
 	if c.Poster != nil {
-		markdown += "**" + c.Poster.UserName + "**"
+		markdown += " **" + c.Poster.UserName + "**"
 	}
 	if !c.Created.IsZero() {
 		markdown += " (" + c.Created.Format("2006-01-02 15:04") + ")"

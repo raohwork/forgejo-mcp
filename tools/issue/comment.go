@@ -218,12 +218,11 @@ func (impl CreateIssueCommentImpl) Handler() mcp.ToolHandlerFor[CreateIssueComme
 			return nil, fmt.Errorf("failed to create comment: %w", err)
 		}
 
-		commentWrapper := &types.Comment{Comment: comment}
-
+		// reply the id of the comment
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{
-					Text: commentWrapper.ToMarkdown(),
+					Text: fmt.Sprintf("Comment#%d has been created successfully.", comment.ID),
 				},
 			},
 		}, nil

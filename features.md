@@ -96,8 +96,6 @@ Labels available for a specific repository
 - **Attachment management** 🟡
   - **List attachments:** `GET /repos/{owner}/{repo}/issues/{index}/assets`
   - Custom: Not supported by SDK, requires custom HTTP request
-  - **Add attachment:** `POST /repos/{owner}/{repo}/issues/{index}/assets`
-  - Custom: Not supported by SDK, requires custom HTTP request
   - **Delete attachment:** `DELETE /repos/{owner}/{repo}/issues/{index}/assets/{attachment_id}`
   - Custom: Not supported by SDK, requires custom HTTP request
   - **Modify attachment:** `PATCH /repos/{owner}/{repo}/issues/{index}/assets/{attachment_id}`
@@ -134,8 +132,6 @@ Labels available for a specific repository
 - **Attachment management**
   - **List attachments:** `GET /repos/{owner}/{repo}/releases/{id}/assets`
   - SDK: `ListReleaseAttachments(user, repo string, release int64, opt ListReleaseAttachmentsOptions) ([]*Attachment, *Response, error)`
-  - **Add attachment:** `POST /repos/{owner}/{repo}/releases/{id}/assets`
-  - SDK: `CreateReleaseAttachment(user, repo string, release int64, file io.Reader, filename string) (*Attachment, *Response, error)`
   - **Delete attachment:** `DELETE /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id}`
   - SDK: `DeleteReleaseAttachment(user, repo string, release, id int64) (*Response, error)`
   - **Modify attachment:** `PATCH /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id}`

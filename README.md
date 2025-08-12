@@ -30,7 +30,7 @@ Then this tool is made for you!
 
 ### Release Management
 - Manage version releases
-- Upload and manage release attachments
+- Manage release attachments
 
 ### Other Features
 - View Pull Requests

@@ -96,8 +96,6 @@
 - **附件管理** 🟡
   - **列出附件:** `GET /repos/{owner}/{repo}/issues/{index}/assets`
   - Custom: SDK 無支援，需自訂 HTTP 請求
-  - **新增附件:** `POST /repos/{owner}/{repo}/issues/{index}/assets`
-  - Custom: SDK 無支援，需自訂 HTTP 請求
   - **刪除附件:** `DELETE /repos/{owner}/{repo}/issues/{index}/assets/{attachment_id}`
   - Custom: SDK 無支援，需自訂 HTTP 請求
   - **修改附件:** `PATCH /repos/{owner}/{repo}/issues/{index}/assets/{attachment_id}`
@@ -134,8 +132,6 @@
 - **附件管理**
   - **列出附件:** `GET /repos/{owner}/{repo}/releases/{id}/assets`
   - SDK: `ListReleaseAttachments(user, repo string, release int64, opt ListReleaseAttachmentsOptions) ([]*Attachment, *Response, error)`
-  - **新增附件:** `POST /repos/{owner}/{repo}/releases/{id}/assets`
-  - SDK: `CreateReleaseAttachment(user, repo string, release int64, file io.Reader, filename string) (*Attachment, *Response, error)`
   - **刪除附件:** `DELETE /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id}`
   - SDK: `DeleteReleaseAttachment(user, repo string, release, id int64) (*Response, error)`
   - **修改附件:** `PATCH /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id}`

@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
@@ -80,8 +80,8 @@ func (ListReleasesImpl) Definition() *mcp.Tool {
 // Handler implements the logic for listing releases. It calls the Forgejo SDK's
 // `ListReleases` function and formats the results into a markdown list.
 func (impl ListReleasesImpl) Handler() mcp.ToolHandlerFor[ListReleasesParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListReleasesParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListReleasesParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Build options for SDK call
 		opt := forgejo.ListReleasesOptions{}
@@ -208,8 +208,8 @@ func (CreateReleaseImpl) Definition() *mcp.Tool {
 // Handler implements the logic for creating a release. It calls the Forgejo SDK's
 // `CreateRelease` function. On success, it returns details of the new release.
 func (impl CreateReleaseImpl) Handler() mcp.ToolHandlerFor[CreateReleaseParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[CreateReleaseParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[CreateReleaseParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Build options for SDK call
 		opt := forgejo.CreateReleaseOption{
@@ -331,8 +331,8 @@ func (EditReleaseImpl) Definition() *mcp.Tool {
 // Handler implements the logic for editing a release. It calls the Forgejo SDK's
 // `EditRelease` function. It will return an error if the release ID is not found.
 func (impl EditReleaseImpl) Handler() mcp.ToolHandlerFor[EditReleaseParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[EditReleaseParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[EditReleaseParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Build options for SDK call
 		opt := forgejo.EditReleaseOption{}
@@ -428,8 +428,8 @@ func (DeleteReleaseImpl) Definition() *mcp.Tool {
 // `DeleteRelease` function. On success, it returns a simple text confirmation.
 // It will return an error if the release does not exist.
 func (impl DeleteReleaseImpl) Handler() mcp.ToolHandlerFor[DeleteReleaseParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[DeleteReleaseParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[DeleteReleaseParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Call SDK
 		_, err := impl.Client.DeleteRelease(p.Owner, p.Repo, int64(p.ID))

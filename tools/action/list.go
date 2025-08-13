@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
@@ -81,8 +81,8 @@ func (ListActionTasksImpl) Definition() *mcp.Tool {
 // GET request to the `/repos/{owner}/{repo}/actions/tasks` endpoint and formats
 // the results into a markdown table.
 func (impl ListActionTasksImpl) Handler() mcp.ToolHandlerFor[ListActionTasksParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListActionTasksParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListActionTasksParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Call custom client method
 		response, err := impl.Client.MyListActionTasks(p.Owner, p.Repo)

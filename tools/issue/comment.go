@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
@@ -102,8 +102,8 @@ func (ListIssueCommentsImpl) Definition() *mcp.Tool {
 // Handler implements the logic for listing issue comments. It calls the Forgejo SDK's
 // `ListIssueComments` function and formats the results into a markdown list.
 func (impl ListIssueCommentsImpl) Handler() mcp.ToolHandlerFor[ListIssueCommentsParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListIssueCommentsParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListIssueCommentsParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		opt := forgejo.ListIssueCommentOptions{}
 		if !p.Since.IsZero() {
@@ -206,8 +206,8 @@ func (CreateIssueCommentImpl) Definition() *mcp.Tool {
 // Handler implements the logic for creating an issue comment. It calls the Forgejo
 // SDK's `CreateIssueComment` function and returns the details of the new comment.
 func (impl CreateIssueCommentImpl) Handler() mcp.ToolHandlerFor[CreateIssueCommentParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[CreateIssueCommentParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[CreateIssueCommentParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		opt := forgejo.CreateIssueCommentOption{
 			Body: p.Body,
@@ -290,8 +290,8 @@ func (EditIssueCommentImpl) Definition() *mcp.Tool {
 // SDK's `EditIssueComment` function. It will return an error if the comment ID
 // is not found.
 func (impl EditIssueCommentImpl) Handler() mcp.ToolHandlerFor[EditIssueCommentParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[EditIssueCommentParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[EditIssueCommentParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		opt := forgejo.EditIssueCommentOption{
 			Body: p.Body,
@@ -370,8 +370,8 @@ func (DeleteIssueCommentImpl) Definition() *mcp.Tool {
 // SDK's `DeleteIssueComment` function. On success, it returns a simple text
 // confirmation. It will return an error if the comment does not exist.
 func (impl DeleteIssueCommentImpl) Handler() mcp.ToolHandlerFor[DeleteIssueCommentParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[DeleteIssueCommentParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[DeleteIssueCommentParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		_, err := impl.Client.DeleteIssueComment(p.Owner, p.Repo, int64(p.CommentID))
 		if err != nil {

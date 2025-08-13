@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
@@ -67,8 +67,8 @@ func (ListRepoLabelsImpl) Definition() *mcp.Tool {
 // a markdown list. Errors will occur if the repository is not found or
 // authentication fails.
 func (impl ListRepoLabelsImpl) Handler() mcp.ToolHandlerFor[ListRepoLabelsParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListRepoLabelsParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListRepoLabelsParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Call SDK
 		labels, _, err := impl.Client.ListRepoLabels(p.Owner, p.Repo, forgejo.ListLabelsOptions{})
@@ -167,8 +167,8 @@ func (CreateLabelImpl) Definition() *mcp.Tool {
 // Handler implements the logic for creating a label. It calls the Forgejo SDK's
 // `CreateLabel` function and returns the details of the newly created label.
 func (impl CreateLabelImpl) Handler() mcp.ToolHandlerFor[CreateLabelParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[CreateLabelParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[CreateLabelParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Build options for SDK call
 		opt := forgejo.CreateLabelOption{
@@ -268,8 +268,8 @@ func (EditLabelImpl) Definition() *mcp.Tool {
 // Handler implements the logic for editing a label. It calls the Forgejo SDK's
 // `EditLabel` function. It will return an error if the label ID is not found.
 func (impl EditLabelImpl) Handler() mcp.ToolHandlerFor[EditLabelParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[EditLabelParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[EditLabelParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Build options for SDK call
 		opt := forgejo.EditLabelOption{}
@@ -358,8 +358,8 @@ func (DeleteLabelImpl) Definition() *mcp.Tool {
 // `DeleteLabel` function. On success, it returns a simple text confirmation.
 // It will return an error if the label does not exist.
 func (impl DeleteLabelImpl) Handler() mcp.ToolHandlerFor[DeleteLabelParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[DeleteLabelParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[DeleteLabelParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Call SDK
 		_, err := impl.Client.DeleteLabel(p.Owner, p.Repo, int64(p.ID))

@@ -11,7 +11,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
@@ -74,8 +74,8 @@ func (GetWikiPageImpl) Definition() *mcp.Tool {
 // and formats the resulting page content as markdown. Errors will occur if the
 // page or repository is not found.
 func (impl GetWikiPageImpl) Handler() mcp.ToolHandlerFor[GetWikiPageParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[GetWikiPageParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[GetWikiPageParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Call custom client method
 		page, err := impl.Client.MyGetWikiPage(p.Owner, p.Repo, p.PageName)
@@ -167,8 +167,8 @@ func (CreateWikiPageImpl) Definition() *mcp.Tool {
 // HTTP POST request to the `/repos/{owner}/{repo}/wiki/new` endpoint. On success,
 // it returns information about the newly created page.
 func (impl CreateWikiPageImpl) Handler() mcp.ToolHandlerFor[CreateWikiPageParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[CreateWikiPageParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[CreateWikiPageParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Prepare options for API call
 		options := types.MyCreateWikiPageOptions{
@@ -271,8 +271,8 @@ func (EditWikiPageImpl) Definition() *mcp.Tool {
 // HTTP PATCH request to the `/repos/{owner}/{repo}/wiki/page/{pageName}` endpoint.
 // It returns an error if the page is not found.
 func (impl EditWikiPageImpl) Handler() mcp.ToolHandlerFor[EditWikiPageParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[EditWikiPageParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[EditWikiPageParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Prepare options for API call
 		title := p.Title
@@ -362,8 +362,8 @@ func (DeleteWikiPageImpl) Definition() *mcp.Tool {
 // HTTP DELETE request to the `/repos/{owner}/{repo}/wiki/page/{pageName}` endpoint.
 // On success, it returns a simple text confirmation.
 func (impl DeleteWikiPageImpl) Handler() mcp.ToolHandlerFor[DeleteWikiPageParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[DeleteWikiPageParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[DeleteWikiPageParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Call custom client method
 		err := impl.Client.MyDeleteWikiPage(p.Owner, p.Repo, p.PageName)

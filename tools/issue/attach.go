@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
@@ -72,8 +72,8 @@ func (ListIssueAttachmentsImpl) Definition() *mcp.Tool {
 // HTTP GET request to the `/repos/{owner}/{repo}/issues/{index}/assets`
 // endpoint and formats the results into a markdown list.
 func (impl ListIssueAttachmentsImpl) Handler() mcp.ToolHandlerFor[ListIssueAttachmentsParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListIssueAttachmentsParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListIssueAttachmentsParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// List issue attachments using the custom client method
 		attachments, err := impl.Client.MyListIssueAttachments(p.Owner, p.Repo, int64(p.Index))
@@ -158,8 +158,8 @@ func (DeleteIssueAttachmentImpl) Definition() *mcp.Tool {
 // HTTP DELETE request to the `/repos/{owner}/{repo}/issues/{index}/assets/{attachment_id}`
 // endpoint. On success, it returns a simple text confirmation.
 func (impl DeleteIssueAttachmentImpl) Handler() mcp.ToolHandlerFor[DeleteIssueAttachmentParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[DeleteIssueAttachmentParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[DeleteIssueAttachmentParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Convert attachment ID from string to int64
 		attachmentID, err := strconv.ParseInt(p.AttachmentID, 10, 64)
@@ -250,8 +250,8 @@ func (EditIssueAttachmentImpl) Definition() *mcp.Tool {
 // HTTP PATCH request to the `/repos/{owner}/{repo}/issues/{index}/assets/{attachment_id}`
 // endpoint. It will return an error if the attachment is not found.
 func (impl EditIssueAttachmentImpl) Handler() mcp.ToolHandlerFor[EditIssueAttachmentParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[EditIssueAttachmentParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[EditIssueAttachmentParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Convert attachment ID from string to int64
 		attachmentID, err := strconv.ParseInt(p.AttachmentID, 10, 64)

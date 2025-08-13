@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
@@ -71,8 +71,8 @@ func (GetPullRequestImpl) Definition() *mcp.Tool {
 // SDK's `GetPullRequest` function and formats the result into a detailed markdown
 // view. It will return an error if the pull request is not found.
 func (impl GetPullRequestImpl) Handler() mcp.ToolHandlerFor[GetPullRequestParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[GetPullRequestParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[GetPullRequestParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Call SDK
 		pr, _, err := impl.Client.GetPullRequest(p.Owner, p.Repo, int64(p.Index))

@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
@@ -67,8 +67,8 @@ func (ListWikiPagesImpl) Definition() *mcp.Tool {
 // formats the resulting list of pages into a markdown table. Errors will occur
 // if the repository is not found or authentication fails.
 func (impl ListWikiPagesImpl) Handler() mcp.ToolHandlerFor[ListWikiPagesParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListWikiPagesParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListWikiPagesParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Call custom client method
 		pages, err := impl.Client.MyListWikiPages(p.Owner, p.Repo)

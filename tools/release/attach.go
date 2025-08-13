@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
@@ -71,8 +71,8 @@ func (ListReleaseAttachmentsImpl) Definition() *mcp.Tool {
 // Handler implements the logic for listing release attachments. It calls the Forgejo
 // SDK's `ListReleaseAttachments` function and formats the results into a markdown list.
 func (impl ListReleaseAttachmentsImpl) Handler() mcp.ToolHandlerFor[ListReleaseAttachmentsParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListReleaseAttachmentsParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListReleaseAttachmentsParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Call SDK
 		attachments, _, err := impl.Client.ListReleaseAttachments(p.Owner, p.Repo, int64(p.ReleaseID), forgejo.ListReleaseAttachmentsOptions{})
@@ -172,8 +172,8 @@ func (EditReleaseAttachmentImpl) Definition() *mcp.Tool {
 // SDK's `EditReleaseAttachment` function. It will return an error if the attachment
 // ID is not found.
 func (impl EditReleaseAttachmentImpl) Handler() mcp.ToolHandlerFor[EditReleaseAttachmentParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[EditReleaseAttachmentParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[EditReleaseAttachmentParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Build options for SDK call
 		opt := forgejo.EditAttachmentOptions{
@@ -261,8 +261,8 @@ func (DeleteReleaseAttachmentImpl) Definition() *mcp.Tool {
 // SDK's `DeleteReleaseAttachment` function. On success, it returns a simple text
 // confirmation. It will return an error if the attachment does not exist.
 func (impl DeleteReleaseAttachmentImpl) Handler() mcp.ToolHandlerFor[DeleteReleaseAttachmentParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[DeleteReleaseAttachmentParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[DeleteReleaseAttachmentParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Call SDK
 		_, err := impl.Client.DeleteReleaseAttachment(p.Owner, p.Repo, int64(p.ReleaseID), int64(p.AttachmentID))

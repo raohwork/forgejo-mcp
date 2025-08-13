@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
@@ -73,8 +73,8 @@ func (ListRepoMilestonesImpl) Definition() *mcp.Tool {
 // Handler implements the logic for listing milestones. It calls the Forgejo SDK's
 // `ListRepoMilestones` function and formats the results into a markdown list.
 func (impl ListRepoMilestonesImpl) Handler() mcp.ToolHandlerFor[ListRepoMilestonesParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListRepoMilestonesParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListRepoMilestonesParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Build options for SDK call
 		opt := forgejo.ListMilestoneOption{}
@@ -181,8 +181,8 @@ func (CreateMilestoneImpl) Definition() *mcp.Tool {
 // Handler implements the logic for creating a milestone. It calls the Forgejo SDK's
 // `CreateMilestone` function and returns the details of the newly created milestone.
 func (impl CreateMilestoneImpl) Handler() mcp.ToolHandlerFor[CreateMilestoneParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[CreateMilestoneParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[CreateMilestoneParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Build options for SDK call
 		opt := forgejo.CreateMilestoneOption{
@@ -294,8 +294,8 @@ func (EditMilestoneImpl) Definition() *mcp.Tool {
 // Handler implements the logic for editing a milestone. It calls the Forgejo SDK's
 // `EditMilestone` function. It will return an error if the milestone ID is not found.
 func (impl EditMilestoneImpl) Handler() mcp.ToolHandlerFor[EditMilestoneParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[EditMilestoneParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[EditMilestoneParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Build options for SDK call
 		opt := forgejo.EditMilestoneOption{}
@@ -388,8 +388,8 @@ func (DeleteMilestoneImpl) Definition() *mcp.Tool {
 // `DeleteMilestone` function. On success, it returns a simple text confirmation.
 // It will return an error if the milestone does not exist.
 func (impl DeleteMilestoneImpl) Handler() mcp.ToolHandlerFor[DeleteMilestoneParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[DeleteMilestoneParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[DeleteMilestoneParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Call SDK
 		_, err := impl.Client.DeleteMilestone(p.Owner, p.Repo, int64(p.ID))

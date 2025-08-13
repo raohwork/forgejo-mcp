@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
@@ -118,8 +118,8 @@ func (ListPullRequestsImpl) Definition() *mcp.Tool {
 // `ListRepoPullRequests` function with the provided filters and formats the results
 // into a markdown table.
 func (impl ListPullRequestsImpl) Handler() mcp.ToolHandlerFor[ListPullRequestsParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListPullRequestsParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListPullRequestsParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Build options for SDK call
 		opt := forgejo.ListPullRequestsOptions{}

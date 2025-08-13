@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
@@ -71,8 +71,8 @@ func (ListIssueDependenciesImpl) Definition() *mcp.Tool {
 // HTTP GET request to the `/repos/{owner}/{repo}/issues/{index}/dependencies`
 // endpoint and formats the results into a markdown list.
 func (impl ListIssueDependenciesImpl) Handler() mcp.ToolHandlerFor[ListIssueDependenciesParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListIssueDependenciesParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListIssueDependenciesParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		issues, err := impl.Client.MyListIssueDependencies(p.Owner, p.Repo, int64(p.Index))
 		if err != nil {
@@ -154,8 +154,8 @@ func (AddIssueDependencyImpl) Definition() *mcp.Tool {
 // HTTP POST request to the `/repos/{owner}/{repo}/issues/{index}/dependencies`
 // endpoint. It will return an error if either issue cannot be found.
 func (impl AddIssueDependencyImpl) Handler() mcp.ToolHandlerFor[AddIssueDependencyParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[AddIssueDependencyParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[AddIssueDependencyParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		dependency := types.MyIssueMeta{
 			Owner: p.Owner,
@@ -242,8 +242,8 @@ func (RemoveIssueDependencyImpl) Definition() *mcp.Tool {
 // HTTP DELETE request to the `/repos/{owner}/{repo}/issues/{index}/dependencies/{dependency_index}`
 // endpoint. On success, it returns a simple text confirmation.
 func (impl RemoveIssueDependencyImpl) Handler() mcp.ToolHandlerFor[RemoveIssueDependencyParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[RemoveIssueDependencyParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[RemoveIssueDependencyParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		dependency := types.MyIssueMeta{
 			Owner: p.Owner,
@@ -322,8 +322,8 @@ func (ListIssueBlockingImpl) Definition() *mcp.Tool {
 // HTTP GET request to the `/repos/{owner}/{repo}/issues/{index}/blocks`
 // endpoint and formats the results into a markdown list.
 func (impl ListIssueBlockingImpl) Handler() mcp.ToolHandlerFor[ListIssueBlockingParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListIssueBlockingParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListIssueBlockingParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		issues, err := impl.Client.MyListIssueBlocking(p.Owner, p.Repo, int64(p.Index))
 		if err != nil {
@@ -405,8 +405,8 @@ func (AddIssueBlockingImpl) Definition() *mcp.Tool {
 // HTTP POST request to the `/repos/{owner}/{repo}/issues/{index}/blocks`
 // endpoint. It will return an error if either issue cannot be found.
 func (impl AddIssueBlockingImpl) Handler() mcp.ToolHandlerFor[AddIssueBlockingParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[AddIssueBlockingParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[AddIssueBlockingParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		blocked := types.MyIssueMeta{
 			Owner: p.Owner,
@@ -493,8 +493,8 @@ func (RemoveIssueBlockingImpl) Definition() *mcp.Tool {
 // HTTP DELETE request to the `/repos/{owner}/{repo}/issues/{index}/blocks/{blocked_index}`
 // endpoint. On success, it returns a simple text confirmation.
 func (impl RemoveIssueBlockingImpl) Handler() mcp.ToolHandlerFor[RemoveIssueBlockingParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[RemoveIssueBlockingParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[RemoveIssueBlockingParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		blocked := types.MyIssueMeta{
 			Owner: p.Owner,

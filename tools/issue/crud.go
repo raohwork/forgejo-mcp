@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
@@ -129,8 +129,8 @@ func (ListRepoIssuesImpl) Definition() *mcp.Tool {
 // `ListRepoIssues` function with the provided filters and formats the results
 // into a markdown table.
 func (impl ListRepoIssuesImpl) Handler() mcp.ToolHandlerFor[ListRepoIssuesParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListRepoIssuesParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListRepoIssuesParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Build options for SDK call
 		opt := forgejo.ListIssueOption{}
@@ -230,8 +230,8 @@ func (GetIssueImpl) Definition() *mcp.Tool {
 // `GetIssue` function and formats the result into a detailed markdown view.
 // It will return an error if the issue is not found.
 func (impl GetIssueImpl) Handler() mcp.ToolHandlerFor[GetIssueParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[GetIssueParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[GetIssueParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Call SDK
 		issue, _, err := impl.Client.GetIssue(p.Owner, p.Repo, int64(p.Index))
@@ -343,8 +343,8 @@ func (CreateIssueImpl) Definition() *mcp.Tool {
 // Handler implements the logic for creating an issue. It calls the Forgejo SDK's
 // `CreateIssue` function and returns the details of the newly created issue.
 func (impl CreateIssueImpl) Handler() mcp.ToolHandlerFor[CreateIssueParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[CreateIssueParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[CreateIssueParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Build options for SDK call
 		opt := forgejo.CreateIssueOption{
@@ -485,8 +485,8 @@ func (EditIssueImpl) Definition() *mcp.Tool {
 // Handler implements the logic for editing an issue. It calls the Forgejo SDK's
 // `EditIssue` function. It will return an error if the issue is not found.
 func (impl EditIssueImpl) Handler() mcp.ToolHandlerFor[EditIssueParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[EditIssueParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[EditIssueParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Build options for SDK call
 		opt := forgejo.EditIssueOption{

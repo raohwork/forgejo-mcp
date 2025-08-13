@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
@@ -83,8 +83,8 @@ func (AddIssueLabelsImpl) Definition() *mcp.Tool {
 // Forgejo SDK's `AddIssueLabels` function. It will return an error if the issue
 // or any of the label IDs are not found.
 func (impl AddIssueLabelsImpl) Handler() mcp.ToolHandlerFor[AddIssueLabelsParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[AddIssueLabelsParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[AddIssueLabelsParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Convert int labels to int64
 		labelIDs := make([]int64, len(p.Labels))
@@ -181,8 +181,8 @@ func (RemoveIssueLabelImpl) Definition() *mcp.Tool {
 // Forgejo SDK's `DeleteIssueLabel` function. On success, it returns a simple
 // text confirmation. It will return an error if the issue or label is not found.
 func (impl RemoveIssueLabelImpl) Handler() mcp.ToolHandlerFor[RemoveIssueLabelParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[RemoveIssueLabelParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[RemoveIssueLabelParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		_, err := impl.Client.DeleteIssueLabel(p.Owner, p.Repo, int64(p.Index), int64(p.Label))
 		if err != nil {
@@ -263,8 +263,8 @@ func (ReplaceIssueLabelsImpl) Definition() *mcp.Tool {
 // SDK's `ReplaceIssueLabels` function. It will return an error if the issue or
 // any of the label IDs are not found.
 func (impl ReplaceIssueLabelsImpl) Handler() mcp.ToolHandlerFor[ReplaceIssueLabelsParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ReplaceIssueLabelsParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ReplaceIssueLabelsParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Convert int labels to int64
 		labelIDs := make([]int64, len(p.Labels))

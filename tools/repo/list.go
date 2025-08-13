@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/raohwork/forgejo-mcp/tools"
@@ -101,8 +101,8 @@ func (SearchRepositoriesImpl) Definition() *mcp.Tool {
 // Handler implements the logic for searching repositories. It calls the Forgejo SDK's
 // `SearchRepos` function and formats the results into a markdown list.
 func (impl SearchRepositoriesImpl) Handler() mcp.ToolHandlerFor[SearchRepositoriesParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[SearchRepositoriesParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[SearchRepositoriesParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Build options for SDK call
 		opt := forgejo.SearchRepoOptions{
@@ -236,8 +236,8 @@ func (ListMyRepositoriesImpl) Definition() *mcp.Tool {
 // Handler implements the logic for listing the user's repositories. It calls the
 // Forgejo SDK's `ListMyRepos` function and formats the results into a markdown list.
 func (impl ListMyRepositoriesImpl) Handler() mcp.ToolHandlerFor[ListMyRepositoriesParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListMyRepositoriesParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListMyRepositoriesParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Build options for SDK call
 		opt := forgejo.ListReposOptions{}
@@ -359,8 +359,8 @@ func (ListOrgRepositoriesImpl) Definition() *mcp.Tool {
 // Handler implements the logic for listing organization repositories. It calls the
 // Forgejo SDK's `ListOrgRepos` function and formats the results into a markdown list.
 func (impl ListOrgRepositoriesImpl) Handler() mcp.ToolHandlerFor[ListOrgRepositoriesParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[ListOrgRepositoriesParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListOrgRepositoriesParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Build options for SDK call
 		opt := forgejo.ListOrgReposOptions{}
@@ -452,8 +452,8 @@ func (GetRepositoryImpl) Definition() *mcp.Tool {
 // Forgejo SDK's `GetRepo` function and formats the full repository object into
 // a detailed markdown view.
 func (impl GetRepositoryImpl) Handler() mcp.ToolHandlerFor[GetRepositoryParams, any] {
-	return func(ctx context.Context, session *mcp.ServerSession, params *mcp.CallToolParamsFor[GetRepositoryParams]) (*mcp.CallToolResult, error) {
-		p := params.Arguments
+	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[GetRepositoryParams]]) (*mcp.CallToolResult, error) {
+		p := req.Params.Arguments
 
 		// Call SDK
 		repo, _, err := impl.Client.GetRepo(p.Owner, p.Repo)

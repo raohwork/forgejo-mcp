@@ -45,6 +45,10 @@ type ListRepoIssuesParams struct {
 	Page int `json:"page,omitempty"`
 	// Limit is the number of issues to return per page.
 	Limit int `json:"limit,omitempty"`
+	// Since is a timestamp in RFC 3339 format to show only issues updated after this time.
+	Since *string `json:"since,omitempty"`
+	// Before is a timestamp in RFC 3339 format to show only issues updated before this time.
+	Before *string `json:"before,omitempty"`
 }
 
 // ListRepoIssuesImpl implements the read-only MCP tool for listing repository issues.
@@ -119,6 +123,16 @@ func (ListRepoIssuesImpl) Definition() *mcp.Tool {
 					Minimum:     tools.Float64Ptr(1),
 					Maximum:     tools.Float64Ptr(50),
 				},
+				"since": {
+					Type:        "string",
+					Description: "Only show items updated after this time (RFC 3339 format, optional)",
+					Format:      "date-time",
+				},
+				"before": {
+					Type:        "string",
+					Description: "Only show items updated before this time (RFC 3339 format, optional)",
+					Format:      "date-time",
+				},
 			},
 			Required: []string{"owner", "repo"},
 		},
@@ -154,6 +168,22 @@ func (impl ListRepoIssuesImpl) Handler() mcp.ToolHandlerFor[ListRepoIssuesParams
 		}
 		if p.Limit > 0 {
 			opt.ListOptions.PageSize = p.Limit
+		}
+
+		// Handle time-based filters
+		if p.Since != nil {
+			since, err := time.Parse(time.RFC3339, *p.Since)
+			if err != nil {
+				return nil, fmt.Errorf("invalid since timestamp format (expected RFC 3339): %w", err)
+			}
+			opt.Since = since
+		}
+		if p.Before != nil {
+			before, err := time.Parse(time.RFC3339, *p.Before)
+			if err != nil {
+				return nil, fmt.Errorf("invalid before timestamp format (expected RFC 3339): %w", err)
+			}
+			opt.Before = before
 		}
 
 		// Call SDK

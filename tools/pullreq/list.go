@@ -118,8 +118,8 @@ func (ListPullRequestsImpl) Definition() *mcp.Tool {
 // `ListRepoPullRequests` function with the provided filters and formats the results
 // into a markdown table.
 func (impl ListPullRequestsImpl) Handler() mcp.ToolHandlerFor[ListPullRequestsParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListPullRequestsParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args ListPullRequestsParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Build options for SDK call
 		opt := forgejo.ListPullRequestsOptions{}
@@ -142,7 +142,7 @@ func (impl ListPullRequestsImpl) Handler() mcp.ToolHandlerFor[ListPullRequestsPa
 		// Call SDK
 		prs, _, err := impl.Client.ListRepoPullRequests(p.Owner, p.Repo, opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list pull requests: %w", err)
+			return nil, nil, fmt.Errorf("failed to list pull requests: %w", err)
 		}
 
 		// Convert to our types and format
@@ -166,6 +166,6 @@ func (impl ListPullRequestsImpl) Handler() mcp.ToolHandlerFor[ListPullRequestsPa
 					Text: content,
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }

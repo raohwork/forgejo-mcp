@@ -101,8 +101,8 @@ func (SearchRepositoriesImpl) Definition() *mcp.Tool {
 // Handler implements the logic for searching repositories. It calls the Forgejo SDK's
 // `SearchRepos` function and formats the results into a markdown list.
 func (impl SearchRepositoriesImpl) Handler() mcp.ToolHandlerFor[SearchRepositoriesParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[SearchRepositoriesParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args SearchRepositoriesParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Build options for SDK call
 		opt := forgejo.SearchRepoOptions{
@@ -130,7 +130,7 @@ func (impl SearchRepositoriesImpl) Handler() mcp.ToolHandlerFor[SearchRepositori
 		// Call SDK
 		repos, _, err := impl.Client.SearchRepos(opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to search repositories: %w", err)
+			return nil, nil, fmt.Errorf("failed to search repositories: %w", err)
 		}
 
 		// Convert to our types and format
@@ -154,7 +154,7 @@ func (impl SearchRepositoriesImpl) Handler() mcp.ToolHandlerFor[SearchRepositori
 					Text: content,
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -236,8 +236,8 @@ func (ListMyRepositoriesImpl) Definition() *mcp.Tool {
 // Handler implements the logic for listing the user's repositories. It calls the
 // Forgejo SDK's `ListMyRepos` function and formats the results into a markdown list.
 func (impl ListMyRepositoriesImpl) Handler() mcp.ToolHandlerFor[ListMyRepositoriesParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListMyRepositoriesParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args ListMyRepositoriesParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Build options for SDK call
 		opt := forgejo.ListReposOptions{}
@@ -253,7 +253,7 @@ func (impl ListMyRepositoriesImpl) Handler() mcp.ToolHandlerFor[ListMyRepositori
 		// Call SDK
 		repos, _, err := impl.Client.ListMyRepos(opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list my repositories: %w", err)
+			return nil, nil, fmt.Errorf("failed to list my repositories: %w", err)
 		}
 
 		// Convert to our types and format
@@ -277,7 +277,7 @@ func (impl ListMyRepositoriesImpl) Handler() mcp.ToolHandlerFor[ListMyRepositori
 					Text: content,
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -359,8 +359,8 @@ func (ListOrgRepositoriesImpl) Definition() *mcp.Tool {
 // Handler implements the logic for listing organization repositories. It calls the
 // Forgejo SDK's `ListOrgRepos` function and formats the results into a markdown list.
 func (impl ListOrgRepositoriesImpl) Handler() mcp.ToolHandlerFor[ListOrgRepositoriesParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListOrgRepositoriesParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args ListOrgRepositoriesParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Build options for SDK call
 		opt := forgejo.ListOrgReposOptions{}
@@ -376,7 +376,7 @@ func (impl ListOrgRepositoriesImpl) Handler() mcp.ToolHandlerFor[ListOrgReposito
 		// Call SDK
 		repos, _, err := impl.Client.ListOrgRepos(p.Org, opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list organization repositories: %w", err)
+			return nil, nil, fmt.Errorf("failed to list organization repositories: %w", err)
 		}
 
 		// Convert to our types and format
@@ -400,7 +400,7 @@ func (impl ListOrgRepositoriesImpl) Handler() mcp.ToolHandlerFor[ListOrgReposito
 					Text: content,
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -452,13 +452,13 @@ func (GetRepositoryImpl) Definition() *mcp.Tool {
 // Forgejo SDK's `GetRepo` function and formats the full repository object into
 // a detailed markdown view.
 func (impl GetRepositoryImpl) Handler() mcp.ToolHandlerFor[GetRepositoryParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[GetRepositoryParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args GetRepositoryParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Call SDK
 		repo, _, err := impl.Client.GetRepo(p.Owner, p.Repo)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get repository: %w", err)
+			return nil, nil, fmt.Errorf("failed to get repository: %w", err)
 		}
 
 		// Convert to our type and format
@@ -470,6 +470,6 @@ func (impl GetRepositoryImpl) Handler() mcp.ToolHandlerFor[GetRepositoryParams, 
 					Text: repoWrapper.ToMarkdown(),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }

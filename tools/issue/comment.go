@@ -102,8 +102,8 @@ func (ListIssueCommentsImpl) Definition() *mcp.Tool {
 // Handler implements the logic for listing issue comments. It calls the Forgejo SDK's
 // `ListIssueComments` function and formats the results into a markdown list.
 func (impl ListIssueCommentsImpl) Handler() mcp.ToolHandlerFor[ListIssueCommentsParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListIssueCommentsParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args ListIssueCommentsParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		opt := forgejo.ListIssueCommentOptions{}
 		if !p.Since.IsZero() {
@@ -121,7 +121,7 @@ func (impl ListIssueCommentsImpl) Handler() mcp.ToolHandlerFor[ListIssueComments
 
 		comments, _, err := impl.Client.ListIssueComments(p.Owner, p.Repo, int64(p.Index), opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list comments: %w", err)
+			return nil, nil, fmt.Errorf("failed to list comments: %w", err)
 		}
 
 		var content string
@@ -142,7 +142,7 @@ func (impl ListIssueCommentsImpl) Handler() mcp.ToolHandlerFor[ListIssueComments
 					Text: content,
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -206,8 +206,8 @@ func (CreateIssueCommentImpl) Definition() *mcp.Tool {
 // Handler implements the logic for creating an issue comment. It calls the Forgejo
 // SDK's `CreateIssueComment` function and returns the details of the new comment.
 func (impl CreateIssueCommentImpl) Handler() mcp.ToolHandlerFor[CreateIssueCommentParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[CreateIssueCommentParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args CreateIssueCommentParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		opt := forgejo.CreateIssueCommentOption{
 			Body: p.Body,
@@ -215,7 +215,7 @@ func (impl CreateIssueCommentImpl) Handler() mcp.ToolHandlerFor[CreateIssueComme
 
 		comment, _, err := impl.Client.CreateIssueComment(p.Owner, p.Repo, int64(p.Index), opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create comment: %w", err)
+			return nil, nil, fmt.Errorf("failed to create comment: %w", err)
 		}
 
 		// reply the id of the comment
@@ -225,7 +225,7 @@ func (impl CreateIssueCommentImpl) Handler() mcp.ToolHandlerFor[CreateIssueComme
 					Text: fmt.Sprintf("Comment#%d has been created successfully.", comment.ID),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -290,8 +290,8 @@ func (EditIssueCommentImpl) Definition() *mcp.Tool {
 // SDK's `EditIssueComment` function. It will return an error if the comment ID
 // is not found.
 func (impl EditIssueCommentImpl) Handler() mcp.ToolHandlerFor[EditIssueCommentParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[EditIssueCommentParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args EditIssueCommentParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		opt := forgejo.EditIssueCommentOption{
 			Body: p.Body,
@@ -299,7 +299,7 @@ func (impl EditIssueCommentImpl) Handler() mcp.ToolHandlerFor[EditIssueCommentPa
 
 		comment, _, err := impl.Client.EditIssueComment(p.Owner, p.Repo, int64(p.CommentID), opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to edit comment: %w", err)
+			return nil, nil, fmt.Errorf("failed to edit comment: %w", err)
 		}
 
 		commentWrapper := &types.Comment{Comment: comment}
@@ -310,7 +310,7 @@ func (impl EditIssueCommentImpl) Handler() mcp.ToolHandlerFor[EditIssueCommentPa
 					Text: commentWrapper.ToMarkdown(),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -370,12 +370,12 @@ func (DeleteIssueCommentImpl) Definition() *mcp.Tool {
 // SDK's `DeleteIssueComment` function. On success, it returns a simple text
 // confirmation. It will return an error if the comment does not exist.
 func (impl DeleteIssueCommentImpl) Handler() mcp.ToolHandlerFor[DeleteIssueCommentParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[DeleteIssueCommentParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args DeleteIssueCommentParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		_, err := impl.Client.DeleteIssueComment(p.Owner, p.Repo, int64(p.CommentID))
 		if err != nil {
-			return nil, fmt.Errorf("failed to delete comment: %w", err)
+			return nil, nil, fmt.Errorf("failed to delete comment: %w", err)
 		}
 
 		return &mcp.CallToolResult{
@@ -384,6 +384,6 @@ func (impl DeleteIssueCommentImpl) Handler() mcp.ToolHandlerFor[DeleteIssueComme
 					Text: fmt.Sprintf("Comment %d successfully deleted.", p.CommentID),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }

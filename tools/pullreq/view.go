@@ -71,13 +71,13 @@ func (GetPullRequestImpl) Definition() *mcp.Tool {
 // SDK's `GetPullRequest` function and formats the result into a detailed markdown
 // view. It will return an error if the pull request is not found.
 func (impl GetPullRequestImpl) Handler() mcp.ToolHandlerFor[GetPullRequestParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[GetPullRequestParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args GetPullRequestParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Call SDK
 		pr, _, err := impl.Client.GetPullRequest(p.Owner, p.Repo, int64(p.Index))
 		if err != nil {
-			return nil, fmt.Errorf("failed to get pull request: %w", err)
+			return nil, nil, fmt.Errorf("failed to get pull request: %w", err)
 		}
 
 		// Convert to our type and format
@@ -89,6 +89,6 @@ func (impl GetPullRequestImpl) Handler() mcp.ToolHandlerFor[GetPullRequestParams
 					Text: prWrapper.ToMarkdown(),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }

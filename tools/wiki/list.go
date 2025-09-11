@@ -67,13 +67,13 @@ func (ListWikiPagesImpl) Definition() *mcp.Tool {
 // formats the resulting list of pages into a markdown table. Errors will occur
 // if the repository is not found or authentication fails.
 func (impl ListWikiPagesImpl) Handler() mcp.ToolHandlerFor[ListWikiPagesParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListWikiPagesParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args ListWikiPagesParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Call custom client method
 		pages, err := impl.Client.MyListWikiPages(p.Owner, p.Repo)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list wiki pages: %w", err)
+			return nil, nil, fmt.Errorf("failed to list wiki pages: %w", err)
 		}
 
 		// Convert to our types and format
@@ -93,6 +93,6 @@ func (impl ListWikiPagesImpl) Handler() mcp.ToolHandlerFor[ListWikiPagesParams, 
 					Text: content,
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }

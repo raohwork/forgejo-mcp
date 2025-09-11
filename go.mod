@@ -4,8 +4,8 @@ go 1.24.5
 
 require (
 	codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2 v2.2.0
-	github.com/google/jsonschema-go v0.2.0
-	github.com/modelcontextprotocol/go-sdk v0.2.1-0.20250812214950-6e03217c831b
+	github.com/google/jsonschema-go v0.2.1-0.20250825175020-748c325cec76
+	github.com/modelcontextprotocol/go-sdk v0.4.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 )

@@ -74,13 +74,13 @@ func (GetWikiPageImpl) Definition() *mcp.Tool {
 // and formats the resulting page content as markdown. Errors will occur if the
 // page or repository is not found.
 func (impl GetWikiPageImpl) Handler() mcp.ToolHandlerFor[GetWikiPageParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[GetWikiPageParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args GetWikiPageParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Call custom client method
 		page, err := impl.Client.MyGetWikiPage(p.Owner, p.Repo, p.PageName)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get wiki page: %w", err)
+			return nil, nil, fmt.Errorf("failed to get wiki page: %w", err)
 		}
 
 		// Convert to our type and format
@@ -94,7 +94,7 @@ func (impl GetWikiPageImpl) Handler() mcp.ToolHandlerFor[GetWikiPageParams, any]
 					Text: wikiPage.ToMarkdown(),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -167,8 +167,8 @@ func (CreateWikiPageImpl) Definition() *mcp.Tool {
 // HTTP POST request to the `/repos/{owner}/{repo}/wiki/new` endpoint. On success,
 // it returns information about the newly created page.
 func (impl CreateWikiPageImpl) Handler() mcp.ToolHandlerFor[CreateWikiPageParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[CreateWikiPageParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args CreateWikiPageParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Prepare options for API call
 		options := types.MyCreateWikiPageOptions{
@@ -180,7 +180,7 @@ func (impl CreateWikiPageImpl) Handler() mcp.ToolHandlerFor[CreateWikiPageParams
 		// Call custom client method
 		page, err := impl.Client.MyCreateWikiPage(p.Owner, p.Repo, options)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create wiki page: %w", err)
+			return nil, nil, fmt.Errorf("failed to create wiki page: %w", err)
 		}
 
 		// Convert to our type and format
@@ -194,7 +194,7 @@ func (impl CreateWikiPageImpl) Handler() mcp.ToolHandlerFor[CreateWikiPageParams
 					Text: wikiPage.ToMarkdown(),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -271,8 +271,8 @@ func (EditWikiPageImpl) Definition() *mcp.Tool {
 // HTTP PATCH request to the `/repos/{owner}/{repo}/wiki/page/{pageName}` endpoint.
 // It returns an error if the page is not found.
 func (impl EditWikiPageImpl) Handler() mcp.ToolHandlerFor[EditWikiPageParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[EditWikiPageParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args EditWikiPageParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Prepare options for API call
 		title := p.Title
@@ -288,7 +288,7 @@ func (impl EditWikiPageImpl) Handler() mcp.ToolHandlerFor[EditWikiPageParams, an
 		// Call custom client method
 		page, err := impl.Client.MyEditWikiPage(p.Owner, p.Repo, p.PageName, options)
 		if err != nil {
-			return nil, fmt.Errorf("failed to edit wiki page: %w", err)
+			return nil, nil, fmt.Errorf("failed to edit wiki page: %w", err)
 		}
 
 		// Convert to our type and format
@@ -302,7 +302,7 @@ func (impl EditWikiPageImpl) Handler() mcp.ToolHandlerFor[EditWikiPageParams, an
 					Text: wikiPage.ToMarkdown(),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -362,13 +362,13 @@ func (DeleteWikiPageImpl) Definition() *mcp.Tool {
 // HTTP DELETE request to the `/repos/{owner}/{repo}/wiki/page/{pageName}` endpoint.
 // On success, it returns a simple text confirmation.
 func (impl DeleteWikiPageImpl) Handler() mcp.ToolHandlerFor[DeleteWikiPageParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[DeleteWikiPageParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args DeleteWikiPageParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Call custom client method
 		err := impl.Client.MyDeleteWikiPage(p.Owner, p.Repo, p.PageName)
 		if err != nil {
-			return nil, fmt.Errorf("failed to delete wiki page: %w", err)
+			return nil, nil, fmt.Errorf("failed to delete wiki page: %w", err)
 		}
 
 		// Return success message
@@ -380,6 +380,6 @@ func (impl DeleteWikiPageImpl) Handler() mcp.ToolHandlerFor[DeleteWikiPageParams
 					Text: emptyResponse.ToMarkdown(),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }

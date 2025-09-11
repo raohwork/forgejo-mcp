@@ -83,8 +83,8 @@ func (AddIssueLabelsImpl) Definition() *mcp.Tool {
 // Forgejo SDK's `AddIssueLabels` function. It will return an error if the issue
 // or any of the label IDs are not found.
 func (impl AddIssueLabelsImpl) Handler() mcp.ToolHandlerFor[AddIssueLabelsParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[AddIssueLabelsParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args AddIssueLabelsParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Convert int labels to int64
 		labelIDs := make([]int64, len(p.Labels))
@@ -98,7 +98,7 @@ func (impl AddIssueLabelsImpl) Handler() mcp.ToolHandlerFor[AddIssueLabelsParams
 
 		labels, _, err := impl.Client.AddIssueLabels(p.Owner, p.Repo, int64(p.Index), opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to add labels: %w", err)
+			return nil, nil, fmt.Errorf("failed to add labels: %w", err)
 		}
 
 		// Convert to our types
@@ -116,7 +116,7 @@ func (impl AddIssueLabelsImpl) Handler() mcp.ToolHandlerFor[AddIssueLabelsParams
 					Text: content,
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -181,12 +181,12 @@ func (RemoveIssueLabelImpl) Definition() *mcp.Tool {
 // Forgejo SDK's `DeleteIssueLabel` function. On success, it returns a simple
 // text confirmation. It will return an error if the issue or label is not found.
 func (impl RemoveIssueLabelImpl) Handler() mcp.ToolHandlerFor[RemoveIssueLabelParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[RemoveIssueLabelParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args RemoveIssueLabelParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		_, err := impl.Client.DeleteIssueLabel(p.Owner, p.Repo, int64(p.Index), int64(p.Label))
 		if err != nil {
-			return nil, fmt.Errorf("failed to remove label: %w", err)
+			return nil, nil, fmt.Errorf("failed to remove label: %w", err)
 		}
 
 		return &mcp.CallToolResult{
@@ -195,7 +195,7 @@ func (impl RemoveIssueLabelImpl) Handler() mcp.ToolHandlerFor[RemoveIssueLabelPa
 					Text: fmt.Sprintf("Label %d successfully removed from issue #%d.", p.Label, p.Index),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -263,8 +263,8 @@ func (ReplaceIssueLabelsImpl) Definition() *mcp.Tool {
 // SDK's `ReplaceIssueLabels` function. It will return an error if the issue or
 // any of the label IDs are not found.
 func (impl ReplaceIssueLabelsImpl) Handler() mcp.ToolHandlerFor[ReplaceIssueLabelsParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ReplaceIssueLabelsParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args ReplaceIssueLabelsParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Convert int labels to int64
 		labelIDs := make([]int64, len(p.Labels))
@@ -278,7 +278,7 @@ func (impl ReplaceIssueLabelsImpl) Handler() mcp.ToolHandlerFor[ReplaceIssueLabe
 
 		labels, _, err := impl.Client.ReplaceIssueLabels(p.Owner, p.Repo, int64(p.Index), opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to replace labels: %w", err)
+			return nil, nil, fmt.Errorf("failed to replace labels: %w", err)
 		}
 
 		// Convert to our types
@@ -296,6 +296,6 @@ func (impl ReplaceIssueLabelsImpl) Handler() mcp.ToolHandlerFor[ReplaceIssueLabe
 					Text: content,
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }

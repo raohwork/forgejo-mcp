@@ -71,13 +71,13 @@ func (ListReleaseAttachmentsImpl) Definition() *mcp.Tool {
 // Handler implements the logic for listing release attachments. It calls the Forgejo
 // SDK's `ListReleaseAttachments` function and formats the results into a markdown list.
 func (impl ListReleaseAttachmentsImpl) Handler() mcp.ToolHandlerFor[ListReleaseAttachmentsParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListReleaseAttachmentsParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args ListReleaseAttachmentsParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Call SDK
 		attachments, _, err := impl.Client.ListReleaseAttachments(p.Owner, p.Repo, int64(p.ReleaseID), forgejo.ListReleaseAttachmentsOptions{})
 		if err != nil {
-			return nil, fmt.Errorf("failed to list release attachments: %w", err)
+			return nil, nil, fmt.Errorf("failed to list release attachments: %w", err)
 		}
 
 		// Convert to our types and format
@@ -101,7 +101,7 @@ func (impl ListReleaseAttachmentsImpl) Handler() mcp.ToolHandlerFor[ListReleaseA
 					Text: content,
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -172,8 +172,8 @@ func (EditReleaseAttachmentImpl) Definition() *mcp.Tool {
 // SDK's `EditReleaseAttachment` function. It will return an error if the attachment
 // ID is not found.
 func (impl EditReleaseAttachmentImpl) Handler() mcp.ToolHandlerFor[EditReleaseAttachmentParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[EditReleaseAttachmentParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args EditReleaseAttachmentParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Build options for SDK call
 		opt := forgejo.EditAttachmentOptions{
@@ -183,7 +183,7 @@ func (impl EditReleaseAttachmentImpl) Handler() mcp.ToolHandlerFor[EditReleaseAt
 		// Call SDK
 		attachment, _, err := impl.Client.EditReleaseAttachment(p.Owner, p.Repo, int64(p.ReleaseID), int64(p.AttachmentID), opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to edit release attachment: %w", err)
+			return nil, nil, fmt.Errorf("failed to edit release attachment: %w", err)
 		}
 
 		// Convert to our type and format
@@ -195,7 +195,7 @@ func (impl EditReleaseAttachmentImpl) Handler() mcp.ToolHandlerFor[EditReleaseAt
 					Text: attachmentWrapper.ToMarkdown(),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -261,13 +261,13 @@ func (DeleteReleaseAttachmentImpl) Definition() *mcp.Tool {
 // SDK's `DeleteReleaseAttachment` function. On success, it returns a simple text
 // confirmation. It will return an error if the attachment does not exist.
 func (impl DeleteReleaseAttachmentImpl) Handler() mcp.ToolHandlerFor[DeleteReleaseAttachmentParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[DeleteReleaseAttachmentParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args DeleteReleaseAttachmentParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Call SDK
 		_, err := impl.Client.DeleteReleaseAttachment(p.Owner, p.Repo, int64(p.ReleaseID), int64(p.AttachmentID))
 		if err != nil {
-			return nil, fmt.Errorf("failed to delete release attachment: %w", err)
+			return nil, nil, fmt.Errorf("failed to delete release attachment: %w", err)
 		}
 
 		// Return success message
@@ -279,6 +279,6 @@ func (impl DeleteReleaseAttachmentImpl) Handler() mcp.ToolHandlerFor[DeleteRelea
 					Text: emptyResponse.ToMarkdown(),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }

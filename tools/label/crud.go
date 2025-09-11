@@ -67,13 +67,13 @@ func (ListRepoLabelsImpl) Definition() *mcp.Tool {
 // a markdown list. Errors will occur if the repository is not found or
 // authentication fails.
 func (impl ListRepoLabelsImpl) Handler() mcp.ToolHandlerFor[ListRepoLabelsParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListRepoLabelsParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args ListRepoLabelsParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Call SDK
 		labels, _, err := impl.Client.ListRepoLabels(p.Owner, p.Repo, forgejo.ListLabelsOptions{})
 		if err != nil {
-			return nil, fmt.Errorf("failed to list labels: %w", err)
+			return nil, nil, fmt.Errorf("failed to list labels: %w", err)
 		}
 
 		// Convert to our types and format
@@ -97,7 +97,7 @@ func (impl ListRepoLabelsImpl) Handler() mcp.ToolHandlerFor[ListRepoLabelsParams
 					Text: content,
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -167,8 +167,8 @@ func (CreateLabelImpl) Definition() *mcp.Tool {
 // Handler implements the logic for creating a label. It calls the Forgejo SDK's
 // `CreateLabel` function and returns the details of the newly created label.
 func (impl CreateLabelImpl) Handler() mcp.ToolHandlerFor[CreateLabelParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[CreateLabelParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args CreateLabelParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Build options for SDK call
 		opt := forgejo.CreateLabelOption{
@@ -180,7 +180,7 @@ func (impl CreateLabelImpl) Handler() mcp.ToolHandlerFor[CreateLabelParams, any]
 		// Call SDK
 		label, _, err := impl.Client.CreateLabel(p.Owner, p.Repo, opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create label: %w", err)
+			return nil, nil, fmt.Errorf("failed to create label: %w", err)
 		}
 
 		// Convert to our type and format
@@ -192,7 +192,7 @@ func (impl CreateLabelImpl) Handler() mcp.ToolHandlerFor[CreateLabelParams, any]
 					Text: labelWrapper.ToMarkdown(),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -268,8 +268,8 @@ func (EditLabelImpl) Definition() *mcp.Tool {
 // Handler implements the logic for editing a label. It calls the Forgejo SDK's
 // `EditLabel` function. It will return an error if the label ID is not found.
 func (impl EditLabelImpl) Handler() mcp.ToolHandlerFor[EditLabelParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[EditLabelParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args EditLabelParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Build options for SDK call
 		opt := forgejo.EditLabelOption{}
@@ -286,7 +286,7 @@ func (impl EditLabelImpl) Handler() mcp.ToolHandlerFor[EditLabelParams, any] {
 		// Call SDK
 		label, _, err := impl.Client.EditLabel(p.Owner, p.Repo, int64(p.ID), opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to edit label: %w", err)
+			return nil, nil, fmt.Errorf("failed to edit label: %w", err)
 		}
 
 		// Convert to our type and format
@@ -298,7 +298,7 @@ func (impl EditLabelImpl) Handler() mcp.ToolHandlerFor[EditLabelParams, any] {
 					Text: labelWrapper.ToMarkdown(),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -358,13 +358,13 @@ func (DeleteLabelImpl) Definition() *mcp.Tool {
 // `DeleteLabel` function. On success, it returns a simple text confirmation.
 // It will return an error if the label does not exist.
 func (impl DeleteLabelImpl) Handler() mcp.ToolHandlerFor[DeleteLabelParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[DeleteLabelParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args DeleteLabelParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Call SDK
 		_, err := impl.Client.DeleteLabel(p.Owner, p.Repo, int64(p.ID))
 		if err != nil {
-			return nil, fmt.Errorf("failed to delete label: %w", err)
+			return nil, nil, fmt.Errorf("failed to delete label: %w", err)
 		}
 
 		// Return success message
@@ -376,6 +376,6 @@ func (impl DeleteLabelImpl) Handler() mcp.ToolHandlerFor[DeleteLabelParams, any]
 					Text: emptyResponse.ToMarkdown(),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }

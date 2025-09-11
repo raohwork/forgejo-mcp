@@ -81,13 +81,13 @@ func (ListActionTasksImpl) Definition() *mcp.Tool {
 // GET request to the `/repos/{owner}/{repo}/actions/tasks` endpoint and formats
 // the results into a markdown table.
 func (impl ListActionTasksImpl) Handler() mcp.ToolHandlerFor[ListActionTasksParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListActionTasksParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args ListActionTasksParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Call custom client method
 		response, err := impl.Client.MyListActionTasks(p.Owner, p.Repo)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list action tasks: %w", err)
+			return nil, nil, fmt.Errorf("failed to list action tasks: %w", err)
 		}
 
 		// Convert to our types and format
@@ -110,6 +110,6 @@ func (impl ListActionTasksImpl) Handler() mcp.ToolHandlerFor[ListActionTasksPara
 					Text: content,
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }

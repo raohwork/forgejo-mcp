@@ -143,8 +143,8 @@ func (ListRepoIssuesImpl) Definition() *mcp.Tool {
 // `ListRepoIssues` function with the provided filters and formats the results
 // into a markdown table.
 func (impl ListRepoIssuesImpl) Handler() mcp.ToolHandlerFor[ListRepoIssuesParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListRepoIssuesParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args ListRepoIssuesParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Build options for SDK call
 		opt := forgejo.ListIssueOption{}
@@ -174,14 +174,14 @@ func (impl ListRepoIssuesImpl) Handler() mcp.ToolHandlerFor[ListRepoIssuesParams
 		if p.Since != nil {
 			since, err := time.Parse(time.RFC3339, *p.Since)
 			if err != nil {
-				return nil, fmt.Errorf("invalid since timestamp format (expected RFC 3339): %w", err)
+				return nil, nil, fmt.Errorf("invalid since timestamp format (expected RFC 3339): %w", err)
 			}
 			opt.Since = since
 		}
 		if p.Before != nil {
 			before, err := time.Parse(time.RFC3339, *p.Before)
 			if err != nil {
-				return nil, fmt.Errorf("invalid before timestamp format (expected RFC 3339): %w", err)
+				return nil, nil, fmt.Errorf("invalid before timestamp format (expected RFC 3339): %w", err)
 			}
 			opt.Before = before
 		}
@@ -189,7 +189,7 @@ func (impl ListRepoIssuesImpl) Handler() mcp.ToolHandlerFor[ListRepoIssuesParams
 		// Call SDK
 		issues, _, err := impl.Client.ListRepoIssues(p.Owner, p.Repo, opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list issues: %w", err)
+			return nil, nil, fmt.Errorf("failed to list issues: %w", err)
 		}
 
 		// Convert to our types and format
@@ -202,7 +202,7 @@ func (impl ListRepoIssuesImpl) Handler() mcp.ToolHandlerFor[ListRepoIssuesParams
 					Text: content,
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -260,13 +260,13 @@ func (GetIssueImpl) Definition() *mcp.Tool {
 // `GetIssue` function and formats the result into a detailed markdown view.
 // It will return an error if the issue is not found.
 func (impl GetIssueImpl) Handler() mcp.ToolHandlerFor[GetIssueParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[GetIssueParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args GetIssueParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Call SDK
 		issue, _, err := impl.Client.GetIssue(p.Owner, p.Repo, int64(p.Index))
 		if err != nil {
-			return nil, fmt.Errorf("failed to get issue: %w", err)
+			return nil, nil, fmt.Errorf("failed to get issue: %w", err)
 		}
 
 		// Convert to our type and format
@@ -278,7 +278,7 @@ func (impl GetIssueImpl) Handler() mcp.ToolHandlerFor[GetIssueParams, any] {
 					Text: issueWrapper.ToMarkdown(),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -373,8 +373,8 @@ func (CreateIssueImpl) Definition() *mcp.Tool {
 // Handler implements the logic for creating an issue. It calls the Forgejo SDK's
 // `CreateIssue` function and returns the details of the newly created issue.
 func (impl CreateIssueImpl) Handler() mcp.ToolHandlerFor[CreateIssueParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[CreateIssueParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args CreateIssueParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Build options for SDK call
 		opt := forgejo.CreateIssueOption{
@@ -404,7 +404,7 @@ func (impl CreateIssueImpl) Handler() mcp.ToolHandlerFor[CreateIssueParams, any]
 		// Call SDK
 		issue, _, err := impl.Client.CreateIssue(p.Owner, p.Repo, opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create issue: %w", err)
+			return nil, nil, fmt.Errorf("failed to create issue: %w", err)
 		}
 
 		// Convert to our type and format
@@ -416,7 +416,7 @@ func (impl CreateIssueImpl) Handler() mcp.ToolHandlerFor[CreateIssueParams, any]
 					Text: issueWrapper.ToMarkdown(),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -515,8 +515,8 @@ func (EditIssueImpl) Definition() *mcp.Tool {
 // Handler implements the logic for editing an issue. It calls the Forgejo SDK's
 // `EditIssue` function. It will return an error if the issue is not found.
 func (impl EditIssueImpl) Handler() mcp.ToolHandlerFor[EditIssueParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[EditIssueParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args EditIssueParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Build options for SDK call
 		opt := forgejo.EditIssueOption{
@@ -553,7 +553,7 @@ func (impl EditIssueImpl) Handler() mcp.ToolHandlerFor[EditIssueParams, any] {
 		// Call SDK
 		issue, _, err := impl.Client.EditIssue(p.Owner, p.Repo, int64(p.Index), opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to edit issue: %w", err)
+			return nil, nil, fmt.Errorf("failed to edit issue: %w", err)
 		}
 
 		// Convert to our type and format
@@ -565,6 +565,6 @@ func (impl EditIssueImpl) Handler() mcp.ToolHandlerFor[EditIssueParams, any] {
 					Text: issueWrapper.ToMarkdown(),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }

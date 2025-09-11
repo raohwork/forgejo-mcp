@@ -72,13 +72,13 @@ func (ListIssueAttachmentsImpl) Definition() *mcp.Tool {
 // HTTP GET request to the `/repos/{owner}/{repo}/issues/{index}/assets`
 // endpoint and formats the results into a markdown list.
 func (impl ListIssueAttachmentsImpl) Handler() mcp.ToolHandlerFor[ListIssueAttachmentsParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[ListIssueAttachmentsParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args ListIssueAttachmentsParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// List issue attachments using the custom client method
 		attachments, err := impl.Client.MyListIssueAttachments(p.Owner, p.Repo, int64(p.Index))
 		if err != nil {
-			return nil, fmt.Errorf("failed to list issue attachments: %w", err)
+			return nil, nil, fmt.Errorf("failed to list issue attachments: %w", err)
 		}
 
 		// Convert to types.AttachmentList for consistent formatting
@@ -93,7 +93,7 @@ func (impl ListIssueAttachmentsImpl) Handler() mcp.ToolHandlerFor[ListIssueAttac
 					Text: fmt.Sprintf("# Issue #%d Attachments\n\n%s", p.Index, attachmentList.ToMarkdown()),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -158,19 +158,19 @@ func (DeleteIssueAttachmentImpl) Definition() *mcp.Tool {
 // HTTP DELETE request to the `/repos/{owner}/{repo}/issues/{index}/assets/{attachment_id}`
 // endpoint. On success, it returns a simple text confirmation.
 func (impl DeleteIssueAttachmentImpl) Handler() mcp.ToolHandlerFor[DeleteIssueAttachmentParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[DeleteIssueAttachmentParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args DeleteIssueAttachmentParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Convert attachment ID from string to int64
 		attachmentID, err := strconv.ParseInt(p.AttachmentID, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("invalid attachment ID: %w", err)
+			return nil, nil, fmt.Errorf("invalid attachment ID: %w", err)
 		}
 
 		// Delete the attachment using the custom client method
 		err = impl.Client.MyDeleteIssueAttachment(p.Owner, p.Repo, int64(p.Index), attachmentID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to delete issue attachment: %w", err)
+			return nil, nil, fmt.Errorf("failed to delete issue attachment: %w", err)
 		}
 
 		return &mcp.CallToolResult{
@@ -179,7 +179,7 @@ func (impl DeleteIssueAttachmentImpl) Handler() mcp.ToolHandlerFor[DeleteIssueAt
 					Text: fmt.Sprintf("Issue attachment %s deleted successfully from issue #%d", p.AttachmentID, p.Index),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }
 
@@ -250,13 +250,13 @@ func (EditIssueAttachmentImpl) Definition() *mcp.Tool {
 // HTTP PATCH request to the `/repos/{owner}/{repo}/issues/{index}/assets/{attachment_id}`
 // endpoint. It will return an error if the attachment is not found.
 func (impl EditIssueAttachmentImpl) Handler() mcp.ToolHandlerFor[EditIssueAttachmentParams, any] {
-	return func(ctx context.Context, req *mcp.ServerRequest[*mcp.CallToolParamsFor[EditIssueAttachmentParams]]) (*mcp.CallToolResult, error) {
-		p := req.Params.Arguments
+	return func(ctx context.Context, req *mcp.CallToolRequest, args EditIssueAttachmentParams) (*mcp.CallToolResult, any, error) {
+		p := args
 
 		// Convert attachment ID from string to int64
 		attachmentID, err := strconv.ParseInt(p.AttachmentID, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("invalid attachment ID: %w", err)
+			return nil, nil, fmt.Errorf("invalid attachment ID: %w", err)
 		}
 
 		// Create options struct from parameters
@@ -267,7 +267,7 @@ func (impl EditIssueAttachmentImpl) Handler() mcp.ToolHandlerFor[EditIssueAttach
 		// Edit the attachment using the custom client method
 		attachment, err := impl.Client.MyEditIssueAttachment(p.Owner, p.Repo, int64(p.Index), attachmentID, options)
 		if err != nil {
-			return nil, fmt.Errorf("failed to edit issue attachment: %w", err)
+			return nil, nil, fmt.Errorf("failed to edit issue attachment: %w", err)
 		}
 
 		// Convert to types.Attachment for consistent formatting
@@ -279,6 +279,6 @@ func (impl EditIssueAttachmentImpl) Handler() mcp.ToolHandlerFor[EditIssueAttach
 					Text: fmt.Sprintf("# Issue Attachment Updated\n\n%s", result.ToMarkdown()),
 				},
 			},
-		}, nil
+		}, nil, nil
 	}
 }

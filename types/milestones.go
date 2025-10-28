@@ -28,7 +28,7 @@ func (m *Milestone) ToMarkdown() string {
 	if m.Milestone == nil {
 		return "*Invalid milestone*"
 	}
-	markdown := "**" + m.Title + "**"
+	markdown := fmt.Sprintf("**%s** #%d", m.Title, m.ID)
 	if m.State != "" {
 		markdown += " (" + string(m.State) + ")"
 	}
@@ -67,7 +67,7 @@ func (ml MilestoneList) ToMarkdown() string {
 		}
 
 		// Format: **Title** (state) - Due: date - Progress: closed/total
-		line := fmt.Sprintf("%d. **%s**", i+1, milestone.Title)
+		line := fmt.Sprintf("%d. **%s** #%d", i+1, milestone.Title, milestone.ID)
 		if milestone.State != "" {
 			line += " (" + string(milestone.State) + ")"
 		}

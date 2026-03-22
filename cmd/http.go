@@ -77,6 +77,8 @@ Example:
 			if myToken != "" {
 				if strings.HasPrefix(myToken, "Bearer ") {
 					myToken = myToken[7:]
+				} else if strings.HasPrefix(myToken, "token ") {
+					myToken = myToken[6:]
 				}
 				c, err := tools.NewClient(base, myToken, "", nil)
 				if err == nil {

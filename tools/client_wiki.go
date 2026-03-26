@@ -13,17 +13,38 @@ import (
 )
 
 // MyListWikiPages lists all wiki pages in a repository.
+// It paginates through all results since the Gitea/Forgejo API defaults
+// to returning only 30 items per page.
 // GET /repos/{owner}/{repo}/wiki/pages
 func (c *Client) MyListWikiPages(owner, repo string) ([]*types.MyWikiPageMetaData, error) {
-	endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/pages", owner, repo)
+	var allPages []*types.MyWikiPageMetaData
+	page := 1
+	limit := 50
 
-	var result []*types.MyWikiPageMetaData
-	err := c.sendSimpleRequest("GET", endpoint, nil, &result)
-	if err != nil {
-		return nil, err
+	for {
+		endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/pages?page=%d&limit=%d", owner, repo, page, limit)
+
+		var result []*types.MyWikiPageMetaData
+		err := c.sendSimpleRequest("GET", endpoint, nil, &result)
+		if err != nil {
+			// First page error means wiki not initialized or other failure
+			if page == 1 {
+				return nil, err
+			}
+			// Later page errors mean we've exhausted results
+			break
+		}
+
+		allPages = append(allPages, result...)
+
+		// If we got fewer than limit, we've reached the last page
+		if len(result) < limit {
+			break
+		}
+		page++
 	}
 
-	return result, nil
+	return allPages, nil
 }
 
 // MyGetWikiPage gets a single wiki page by name.

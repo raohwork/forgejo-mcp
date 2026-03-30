@@ -209,3 +209,8 @@ This project is licensed under the [Mozilla Public License 2.0](LICENSE).
 ---
 
 **Start making AI your code repository management partner!** 🚀
+
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/raohwork-forgejo-mcp).
+

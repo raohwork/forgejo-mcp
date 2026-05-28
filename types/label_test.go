@@ -23,7 +23,7 @@ func TestLabel_ToMarkdown(t *testing.T) {
 			label: &Label{
 				Label: testLabel(),
 			},
-			required: []string{"bug", "ff0000", "Something isn't working"},
+			required: []string{"bug", "#1", "ff0000", "Something isn't working"},
 		},
 		{
 			name:     "nil label",

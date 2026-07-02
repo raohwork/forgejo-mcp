@@ -23,7 +23,7 @@ func TestLabel_ToMarkdown(t *testing.T) {
 			label: &Label{
 				Label: testLabel(),
 			},
-			required: []string{"bug", "ff0000", "Something isn't working"},
+			required: []string{"bug", "ID: 1", "ff0000", "Something isn't working"},
 		},
 		{
 			name:     "nil label",
@@ -52,13 +52,14 @@ func TestLabelList_ToMarkdown(t *testing.T) {
 				&Label{Label: testLabel()},
 				&Label{
 					Label: &forgejo.Label{
+						ID:          2,
 						Name:        "enhancement",
 						Color:       "a2eeef",
 						Description: "New feature or request",
 					},
 				},
 			},
-			required: []string{"bug", "ff0000", "Something isn't working", "enhancement", "a2eeef", "New feature or request"},
+			required: []string{"bug", "ID: 1", "ff0000", "Something isn't working", "enhancement", "ID: 2", "a2eeef", "New feature or request"},
 		},
 		{
 			name:     "empty label list",

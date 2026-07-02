@@ -7,6 +7,8 @@
 package types
 
 import (
+	"fmt"
+
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
 )
 
@@ -22,13 +24,13 @@ type Label struct {
 	*forgejo.Label
 }
 
-// ToMarkdown renders a label as a colored badge with name and description
-// Example: **bug** `#ff0000` - Something isn't working
+// ToMarkdown renders a label as a colored badge with ID, name and description
+// Example: **bug** (ID: 1) `#ff0000` - Something isn't working
 func (l *Label) ToMarkdown() string {
 	if l.Label == nil {
 		return "*Invalid label*"
 	}
-	markdown := "**" + l.Name + "**"
+	markdown := fmt.Sprintf("**%s** (ID: %d)", l.Name, l.ID)
 	if l.Color != "" {
 		markdown += " `#" + l.Color + "`"
 	}
@@ -47,8 +49,8 @@ type LabelList []*Label
 
 // ToMarkdown renders labels as a bullet list of colored badges
 // Example:
-// - **bug** `#ff0000` - Something isn't working
-// - **enhancement** `#a2eeef` - New feature or request
+// - **bug** (ID: 1) `#ff0000` - Something isn't working
+// - **enhancement** (ID: 2) `#a2eeef` - New feature or request
 func (ll LabelList) ToMarkdown() string {
 	if len(ll) == 0 {
 		return "*No labels found*"

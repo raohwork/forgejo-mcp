@@ -8,95 +8,25 @@ package cmd
 
 import (
 	"github.com/raohwork/forgejo-mcp/tools"
-	"github.com/raohwork/forgejo-mcp/tools/action"
-	"github.com/raohwork/forgejo-mcp/tools/issue"
-	"github.com/raohwork/forgejo-mcp/tools/label"
-	"github.com/raohwork/forgejo-mcp/tools/milestone"
-	"github.com/raohwork/forgejo-mcp/tools/pullreq"
-	"github.com/raohwork/forgejo-mcp/tools/release"
-	"github.com/raohwork/forgejo-mcp/tools/repo"
-	"github.com/raohwork/forgejo-mcp/tools/wiki"
+	"github.com/raohwork/forgejo-mcp/tools/unified"
 	"github.com/raohwork/forgejo-mcp/types"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 func registerCommands(s *mcp.Server, cl *tools.Client) {
-	// Issue tools
-	tools.Register(s, &issue.ListRepoIssuesImpl{Client: cl})
-	tools.Register(s, &issue.GetIssueImpl{Client: cl})
-	tools.Register(s, &issue.CreateIssueImpl{Client: cl})
-	tools.Register(s, &issue.EditIssueImpl{Client: cl})
-
-	// Issue label tools
-	tools.Register(s, &issue.AddIssueLabelsImpl{Client: cl})
-	tools.Register(s, &issue.RemoveIssueLabelImpl{Client: cl})
-	tools.Register(s, &issue.ReplaceIssueLabelsImpl{Client: cl})
-
-	// Issue comment tools
-	tools.Register(s, &issue.ListIssueCommentsImpl{Client: cl})
-	tools.Register(s, &issue.CreateIssueCommentImpl{Client: cl})
-	tools.Register(s, &issue.EditIssueCommentImpl{Client: cl})
-	tools.Register(s, &issue.DeleteIssueCommentImpl{Client: cl})
-
-	// Issue attachment tools
-	tools.Register(s, &issue.ListIssueAttachmentsImpl{Client: cl})
-	tools.Register(s, &issue.DeleteIssueAttachmentImpl{Client: cl})
-	tools.Register(s, &issue.EditIssueAttachmentImpl{Client: cl})
-
-	// Issue dependency tools
-	tools.Register(s, &issue.ListIssueDependenciesImpl{Client: cl})
-	tools.Register(s, &issue.AddIssueDependencyImpl{Client: cl})
-	tools.Register(s, &issue.RemoveIssueDependencyImpl{Client: cl})
-
-	// Issue blocking tools
-	tools.Register(s, &issue.ListIssueBlockingImpl{Client: cl})
-	tools.Register(s, &issue.AddIssueBlockingImpl{Client: cl})
-	tools.Register(s, &issue.RemoveIssueBlockingImpl{Client: cl})
-
-	// Label tools
-	tools.Register(s, &label.ListRepoLabelsImpl{Client: cl})
-	tools.Register(s, &label.CreateLabelImpl{Client: cl})
-	tools.Register(s, &label.EditLabelImpl{Client: cl})
-	tools.Register(s, &label.DeleteLabelImpl{Client: cl})
-
-	// Milestone tools
-	tools.Register(s, &milestone.ListRepoMilestonesImpl{Client: cl})
-	tools.Register(s, &milestone.CreateMilestoneImpl{Client: cl})
-	tools.Register(s, &milestone.EditMilestoneImpl{Client: cl})
-	tools.Register(s, &milestone.DeleteMilestoneImpl{Client: cl})
-
-	// Release tools
-	tools.Register(s, &release.ListReleasesImpl{Client: cl})
-	tools.Register(s, &release.CreateReleaseImpl{Client: cl})
-	tools.Register(s, &release.EditReleaseImpl{Client: cl})
-	tools.Register(s, &release.DeleteReleaseImpl{Client: cl})
-
-	// Release attachment tools
-	tools.Register(s, &release.ListReleaseAttachmentsImpl{Client: cl})
-	tools.Register(s, &release.EditReleaseAttachmentImpl{Client: cl})
-	tools.Register(s, &release.DeleteReleaseAttachmentImpl{Client: cl})
-
-	// Pull request tools
-	tools.Register(s, &pullreq.ListPullRequestsImpl{Client: cl})
-	tools.Register(s, &pullreq.GetPullRequestImpl{Client: cl})
-	tools.Register(s, &pullreq.CreatePullRequestImpl{Client: cl})
-
-	// Repository tools
-	tools.Register(s, &repo.SearchRepositoriesImpl{Client: cl})
-	tools.Register(s, &repo.ListMyRepositoriesImpl{Client: cl})
-	tools.Register(s, &repo.ListOrgRepositoriesImpl{Client: cl})
-	tools.Register(s, &repo.GetRepositoryImpl{Client: cl})
-
-	// Wiki tools
-	tools.Register(s, &wiki.GetWikiPageImpl{Client: cl})
-	tools.Register(s, &wiki.CreateWikiPageImpl{Client: cl})
-	tools.Register(s, &wiki.EditWikiPageImpl{Client: cl})
-	tools.Register(s, &wiki.DeleteWikiPageImpl{Client: cl})
-	tools.Register(s, &wiki.ListWikiPagesImpl{Client: cl})
-
-	// Action tools
-	tools.Register(s, &action.ListActionTasksImpl{Client: cl})
+	// Use unified tools (8 tools instead of 47)
+	// This reduces token consumption by ~80% while maintaining full functionality.
+	// The unified tools use action-based organization:
+	// - gitea_manual: On-demand documentation lookup
+	// - create_gitea: Create resources (issue, label, milestone, release, wiki_page, pull_request, issue_comment)
+	// - get_gitea: Get single resources (issue, wiki_page, pull_request, repository)
+	// - list_gitea: List resources (issues, labels, milestones, releases, wiki_pages, pull_requests, repositories, etc.)
+	// - edit_gitea: Edit resources (issue, label, milestone, release, wiki_page, etc.)
+	// - delete_gitea: Delete resources (label, milestone, release, wiki_page, issue_comment, etc.)
+	// - link_gitea: Create relationships (issue↔label, issue dependencies, issue blocking)
+	// - unlink_gitea: Remove relationships
+	unified.RegisterAll(s, cl)
 }
 
 func createServer(cl *tools.Client) *mcp.Server {

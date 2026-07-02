@@ -8,6 +8,7 @@ package unified
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -50,6 +51,10 @@ Use gitea_manual(action="get") for details.`,
 					Type:        "string",
 					Description: "Repository name",
 				},
+				"index": {
+					Type:        "integer",
+					Description: "Issue or pull request number (for issue, pull_request)",
+				},
 			},
 			Required:             []string{"resource", "owner", "repo"},
 			AdditionalProperties: &jsonschema.Schema{},
@@ -81,7 +86,7 @@ func (impl GetImpl) Handler() mcp.ToolHandlerFor[map[string]any, any] {
 		case "repository":
 			return impl.getRepository(args)
 		default:
-			return nil, nil, fmt.Errorf(FormatValidationError(ActionGet, resource, "not implemented"))
+			return nil, nil, errors.New(FormatValidationError(ActionGet, resource, "not implemented"))
 		}
 	}
 }
@@ -89,15 +94,15 @@ func (impl GetImpl) Handler() mcp.ToolHandlerFor[map[string]any, any] {
 func (impl GetImpl) getIssue(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionGet, "issue", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionGet, "issue", err.Error()))
 	}
 
-	index, ok := args["index"].(float64)
-	if !ok || index <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionGet, "issue", "index is required"))
+	index, err := requiredPositiveInt(args, "index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionGet, "issue", err.Error()))
 	}
 
-	issue, _, err := impl.Client.GetIssue(owner, repo, int64(index))
+	issue, _, err := impl.Client.GetIssue(owner, repo, index)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get issue: %w", err)
 	}
@@ -108,12 +113,12 @@ func (impl GetImpl) getIssue(args map[string]any) (*mcp.CallToolResult, any, err
 func (impl GetImpl) getWikiPage(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionGet, "wiki_page", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionGet, "wiki_page", err.Error()))
 	}
 
 	pageName, _ := args["page_name"].(string)
 	if pageName == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionGet, "wiki_page", "page_name is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionGet, "wiki_page", "page_name is required"))
 	}
 
 	page, err := impl.Client.MyGetWikiPage(owner, repo, pageName)
@@ -127,15 +132,15 @@ func (impl GetImpl) getWikiPage(args map[string]any) (*mcp.CallToolResult, any, 
 func (impl GetImpl) getPullRequest(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionGet, "pull_request", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionGet, "pull_request", err.Error()))
 	}
 
-	index, ok := args["index"].(float64)
-	if !ok || index <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionGet, "pull_request", "index is required"))
+	index, err := requiredPositiveInt(args, "index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionGet, "pull_request", err.Error()))
 	}
 
-	pr, _, err := impl.Client.GetPullRequest(owner, repo, int64(index))
+	pr, _, err := impl.Client.GetPullRequest(owner, repo, index)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get pull request: %w", err)
 	}
@@ -146,7 +151,7 @@ func (impl GetImpl) getPullRequest(args map[string]any) (*mcp.CallToolResult, an
 func (impl GetImpl) getRepository(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionGet, "repository", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionGet, "repository", err.Error()))
 	}
 
 	repository, _, err := impl.Client.GetRepo(owner, repo)

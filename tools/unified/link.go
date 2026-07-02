@@ -8,6 +8,7 @@ package unified
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"codeberg.org/mvdkleijn/forgejo-sdk/forgejo/v2"
@@ -52,6 +53,23 @@ Use gitea_manual(action="link") for details.`,
 					Type:        "string",
 					Description: "Repository name",
 				},
+				"index": {
+					Type:        "integer",
+					Description: "Issue number the link applies to",
+				},
+				"labels": {
+					Type:        "array",
+					Items:       &jsonschema.Schema{Type: "integer"},
+					Description: "Label IDs (for issue_label)",
+				},
+				"dependency_index": {
+					Type:        "integer",
+					Description: "Issue number this issue depends on (for issue_dependency)",
+				},
+				"blocked_index": {
+					Type:        "integer",
+					Description: "Issue number blocked by this issue (for issue_blocking)",
+				},
 			},
 			Required:             []string{"type", "owner", "repo"},
 			AdditionalProperties: &jsonschema.Schema{},
@@ -79,7 +97,7 @@ func (impl LinkImpl) Handler() mcp.ToolHandlerFor[map[string]any, any] {
 		case "issue_blocking":
 			return impl.addIssueBlocking(args)
 		default:
-			return nil, nil, fmt.Errorf(FormatValidationError(ActionLink, linkType, "not implemented"))
+			return nil, nil, errors.New(FormatValidationError(ActionLink, linkType, "not implemented"))
 		}
 	}
 }
@@ -87,23 +105,25 @@ func (impl LinkImpl) Handler() mcp.ToolHandlerFor[map[string]any, any] {
 func (impl LinkImpl) addIssueLabels(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionLink, "issue_label", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionLink, "issue_label", err.Error()))
 	}
 
-	index, ok := args["index"].(float64)
-	if !ok || index <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionLink, "issue_label", "index is required"))
+	index, err := requiredPositiveInt(args, "index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionLink, "issue_label", err.Error()))
 	}
 
-	labelsRaw, ok := args["labels"].([]any)
-	if !ok || len(labelsRaw) == 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionLink, "issue_label", "labels is required (array of label IDs)"))
+	labelIDs, err := int64List(args, "labels")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionLink, "issue_label", err.Error()))
+	}
+	if len(labelIDs) == 0 {
+		return nil, nil, errors.New(FormatValidationError(ActionLink, "issue_label", "labels is required (array of label IDs)"))
 	}
 
-	labelIDs := toInt64Slice(labelsRaw)
 	opt := forgejo.IssueLabelsOption{Labels: labelIDs}
 
-	labels, _, err := impl.Client.AddIssueLabels(owner, repo, int64(index), opt)
+	labels, _, err := impl.Client.AddIssueLabels(owner, repo, index, opt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to add labels: %w", err)
 	}
@@ -112,67 +132,67 @@ func (impl LinkImpl) addIssueLabels(args map[string]any) (*mcp.CallToolResult, a
 	for i, l := range labels {
 		labelList[i] = &types.Label{Label: l}
 	}
-	return textResult(fmt.Sprintf("Labels added to issue #%d\n\n%s", int(index), labelList.ToMarkdown())), nil, nil
+	return textResult(fmt.Sprintf("Labels added to issue #%d\n\n%s", index, labelList.ToMarkdown())), nil, nil
 }
 
 func (impl LinkImpl) addIssueDependency(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionLink, "issue_dependency", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionLink, "issue_dependency", err.Error()))
 	}
 
-	index, ok := args["index"].(float64)
-	if !ok || index <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionLink, "issue_dependency", "index is required"))
+	index, err := requiredPositiveInt(args, "index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionLink, "issue_dependency", err.Error()))
 	}
 
-	dependencyIndex, ok := args["dependency_index"].(float64)
-	if !ok || dependencyIndex <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionLink, "issue_dependency", "dependency_index is required"))
+	dependencyIndex, err := requiredPositiveInt(args, "dependency_index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionLink, "issue_dependency", err.Error()))
 	}
 
 	dependency := types.MyIssueMeta{
 		Owner: owner,
 		Name:  repo,
-		Index: int64(dependencyIndex),
+		Index: dependencyIndex,
 	}
 
-	_, err = impl.Client.MyAddIssueDependency(owner, repo, int64(index), dependency)
+	_, err = impl.Client.MyAddIssueDependency(owner, repo, index, dependency)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to add dependency: %w", err)
 	}
 
 	return textResult(fmt.Sprintf("Issue #%d now depends on issue #%d (must close #%d first)",
-		int(index), int(dependencyIndex), int(dependencyIndex))), nil, nil
+		index, dependencyIndex, dependencyIndex)), nil, nil
 }
 
 func (impl LinkImpl) addIssueBlocking(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionLink, "issue_blocking", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionLink, "issue_blocking", err.Error()))
 	}
 
-	index, ok := args["index"].(float64)
-	if !ok || index <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionLink, "issue_blocking", "index is required"))
+	index, err := requiredPositiveInt(args, "index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionLink, "issue_blocking", err.Error()))
 	}
 
-	blockedIndex, ok := args["blocked_index"].(float64)
-	if !ok || blockedIndex <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionLink, "issue_blocking", "blocked_index is required"))
+	blockedIndex, err := requiredPositiveInt(args, "blocked_index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionLink, "issue_blocking", err.Error()))
 	}
 
 	blocked := types.MyIssueMeta{
 		Owner: owner,
 		Name:  repo,
-		Index: int64(blockedIndex),
+		Index: blockedIndex,
 	}
 
-	_, err = impl.Client.MyAddIssueBlocking(owner, repo, int64(index), blocked)
+	_, err = impl.Client.MyAddIssueBlocking(owner, repo, index, blocked)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to add blocking relationship: %w", err)
 	}
 
 	return textResult(fmt.Sprintf("Issue #%d now blocks issue #%d (must close #%d first)",
-		int(index), int(blockedIndex), int(index))), nil, nil
+		index, blockedIndex, index)), nil, nil
 }

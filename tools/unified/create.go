@@ -9,6 +9,7 @@ package unified
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"time"
 
@@ -61,6 +62,24 @@ Use gitea_manual(action="create") for details.`,
 					Type:        "string",
 					Description: "Repository name",
 				},
+				"index": {
+					Type:        "integer",
+					Description: "Issue number (required for issue_comment)",
+				},
+				"milestone": {
+					Type:        "integer",
+					Description: "Milestone ID",
+				},
+				"labels": {
+					Type:        "array",
+					Items:       &jsonschema.Schema{Type: "integer"},
+					Description: "Label IDs (for issue, pull_request)",
+				},
+				"assignees": {
+					Type:        "array",
+					Items:       &jsonschema.Schema{Type: "string"},
+					Description: "Usernames to assign (for issue, pull_request)",
+				},
 			},
 			Required:             []string{"resource", "owner", "repo"},
 			AdditionalProperties: &jsonschema.Schema{},
@@ -99,7 +118,7 @@ func (impl CreateImpl) Handler() mcp.ToolHandlerFor[map[string]any, any] {
 		case "pull_request":
 			return impl.createPullRequest(args)
 		default:
-			return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, resource, "not implemented"))
+			return nil, nil, errors.New(FormatValidationError(ActionCreate, resource, "not implemented"))
 		}
 	}
 }
@@ -107,17 +126,17 @@ func (impl CreateImpl) Handler() mcp.ToolHandlerFor[map[string]any, any] {
 func (impl CreateImpl) createIssue(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "issue", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "issue", err.Error()))
 	}
 
 	title, _ := args["title"].(string)
 	if title == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "issue", "title is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "issue", "title is required"))
 	}
 
 	body, _ := args["body"].(string)
 	if body == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "issue", "body is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "issue", "body is required"))
 	}
 
 	opt := forgejo.CreateIssueOption{
@@ -125,17 +144,25 @@ func (impl CreateImpl) createIssue(args map[string]any) (*mcp.CallToolResult, an
 		Body:  body,
 	}
 
-	if assignees, ok := args["assignees"].([]any); ok {
-		opt.Assignees = toStringSlice(assignees)
+	assignees, err := stringList(args, "assignees")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "issue", err.Error()))
+	}
+	opt.Assignees = assignees
+
+	milestone, ok, err := optionalPositiveInt(args, "milestone")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "issue", err.Error()))
+	}
+	if ok {
+		opt.Milestone = milestone
 	}
 
-	if milestone, ok := args["milestone"].(float64); ok && milestone > 0 {
-		opt.Milestone = int64(milestone)
+	labels, err := int64List(args, "labels")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "issue", err.Error()))
 	}
-
-	if labels, ok := args["labels"].([]any); ok {
-		opt.Labels = toInt64Slice(labels)
-	}
+	opt.Labels = labels
 
 	if dueDateStr, ok := args["due_date"].(string); ok && dueDateStr != "" {
 		dueDate, err := time.Parse(time.RFC3339, dueDateStr)
@@ -156,21 +183,21 @@ func (impl CreateImpl) createIssue(args map[string]any) (*mcp.CallToolResult, an
 func (impl CreateImpl) createIssueComment(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "issue_comment", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "issue_comment", err.Error()))
 	}
 
-	index, ok := args["index"].(float64)
-	if !ok || index <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "issue_comment", "index is required"))
+	index, err := requiredPositiveInt(args, "index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "issue_comment", err.Error()))
 	}
 
 	body, _ := args["body"].(string)
 	if body == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "issue_comment", "body is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "issue_comment", "body is required"))
 	}
 
 	opt := forgejo.CreateIssueCommentOption{Body: body}
-	comment, _, err := impl.Client.CreateIssueComment(owner, repo, int64(index), opt)
+	comment, _, err := impl.Client.CreateIssueComment(owner, repo, index, opt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create comment: %w", err)
 	}
@@ -181,17 +208,17 @@ func (impl CreateImpl) createIssueComment(args map[string]any) (*mcp.CallToolRes
 func (impl CreateImpl) createLabel(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "label", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "label", err.Error()))
 	}
 
 	name, _ := args["name"].(string)
 	if name == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "label", "name is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "label", "name is required"))
 	}
 
 	color, _ := args["color"].(string)
 	if color == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "label", "color is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "label", "color is required"))
 	}
 
 	description, _ := args["description"].(string)
@@ -213,12 +240,12 @@ func (impl CreateImpl) createLabel(args map[string]any) (*mcp.CallToolResult, an
 func (impl CreateImpl) createMilestone(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "milestone", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "milestone", err.Error()))
 	}
 
 	title, _ := args["title"].(string)
 	if title == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "milestone", "title is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "milestone", "title is required"))
 	}
 
 	description, _ := args["description"].(string)
@@ -247,17 +274,17 @@ func (impl CreateImpl) createMilestone(args map[string]any) (*mcp.CallToolResult
 func (impl CreateImpl) createRelease(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "release", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "release", err.Error()))
 	}
 
 	tagName, _ := args["tag_name"].(string)
 	if tagName == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "release", "tag_name is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "release", "tag_name is required"))
 	}
 
 	name, _ := args["name"].(string)
 	if name == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "release", "name is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "release", "name is required"))
 	}
 
 	opt := forgejo.CreateReleaseOption{
@@ -289,17 +316,17 @@ func (impl CreateImpl) createRelease(args map[string]any) (*mcp.CallToolResult, 
 func (impl CreateImpl) createWikiPage(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "wiki_page", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "wiki_page", err.Error()))
 	}
 
 	title, _ := args["title"].(string)
 	if title == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "wiki_page", "title is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "wiki_page", "title is required"))
 	}
 
 	content, _ := args["content"].(string)
 	if content == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "wiki_page", "content is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "wiki_page", "content is required"))
 	}
 
 	message, _ := args["message"].(string)
@@ -321,22 +348,22 @@ func (impl CreateImpl) createWikiPage(args map[string]any) (*mcp.CallToolResult,
 func (impl CreateImpl) createPullRequest(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "pull_request", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "pull_request", err.Error()))
 	}
 
 	title, _ := args["title"].(string)
 	if title == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "pull_request", "title is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "pull_request", "title is required"))
 	}
 
 	head, _ := args["head"].(string)
 	if head == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "pull_request", "head is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "pull_request", "head is required"))
 	}
 
 	base, _ := args["base"].(string)
 	if base == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionCreate, "pull_request", "base is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "pull_request", "base is required"))
 	}
 
 	opt := forgejo.CreatePullRequestOption{
@@ -348,15 +375,26 @@ func (impl CreateImpl) createPullRequest(args map[string]any) (*mcp.CallToolResu
 	if body, ok := args["body"].(string); ok {
 		opt.Body = body
 	}
-	if assignees, ok := args["assignees"].([]any); ok {
-		opt.Assignees = toStringSlice(assignees)
+
+	assignees, err := stringList(args, "assignees")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "pull_request", err.Error()))
 	}
-	if milestone, ok := args["milestone"].(float64); ok && milestone > 0 {
-		opt.Milestone = int64(milestone)
+	opt.Assignees = assignees
+
+	milestone, ok, err := optionalPositiveInt(args, "milestone")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "pull_request", err.Error()))
 	}
-	if labels, ok := args["labels"].([]any); ok {
-		opt.Labels = toInt64Slice(labels)
+	if ok {
+		opt.Milestone = milestone
 	}
+
+	labels, err := int64List(args, "labels")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionCreate, "pull_request", err.Error()))
+	}
+	opt.Labels = labels
 
 	pr, _, err := impl.Client.CreatePullRequest(owner, repo, opt)
 	if err != nil {
@@ -378,26 +416,6 @@ func extractOwnerRepo(args map[string]any) (string, string, error) {
 		return "", "", fmt.Errorf("repo is required")
 	}
 	return owner, repo, nil
-}
-
-func toStringSlice(arr []any) []string {
-	result := make([]string, 0, len(arr))
-	for _, v := range arr {
-		if s, ok := v.(string); ok {
-			result = append(result, s)
-		}
-	}
-	return result
-}
-
-func toInt64Slice(arr []any) []int64 {
-	result := make([]int64, 0, len(arr))
-	for _, v := range arr {
-		if f, ok := v.(float64); ok {
-			result = append(result, int64(f))
-		}
-	}
-	return result
 }
 
 func textResult(text string) *mcp.CallToolResult {

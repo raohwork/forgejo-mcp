@@ -8,6 +8,7 @@ package unified
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -51,6 +52,22 @@ Use gitea_manual(action="unlink") for details.`,
 					Type:        "string",
 					Description: "Repository name",
 				},
+				"index": {
+					Type:        "integer",
+					Description: "Issue number the link applies to",
+				},
+				"label_id": {
+					Type:        "integer",
+					Description: "Label ID to remove (for issue_label)",
+				},
+				"dependency_index": {
+					Type:        "integer",
+					Description: "Issue number to remove from dependencies (for issue_dependency)",
+				},
+				"blocked_index": {
+					Type:        "integer",
+					Description: "Blocked issue number to remove (for issue_blocking)",
+				},
 			},
 			Required:             []string{"type", "owner", "repo"},
 			AdditionalProperties: &jsonschema.Schema{},
@@ -78,7 +95,7 @@ func (impl UnlinkImpl) Handler() mcp.ToolHandlerFor[map[string]any, any] {
 		case "issue_blocking":
 			return impl.removeIssueBlocking(args)
 		default:
-			return nil, nil, fmt.Errorf(FormatValidationError(ActionUnlink, linkType, "not implemented"))
+			return nil, nil, errors.New(FormatValidationError(ActionUnlink, linkType, "not implemented"))
 		}
 	}
 }
@@ -86,85 +103,85 @@ func (impl UnlinkImpl) Handler() mcp.ToolHandlerFor[map[string]any, any] {
 func (impl UnlinkImpl) removeIssueLabel(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionUnlink, "issue_label", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionUnlink, "issue_label", err.Error()))
 	}
 
-	index, ok := args["index"].(float64)
-	if !ok || index <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionUnlink, "issue_label", "index is required"))
+	index, err := requiredPositiveInt(args, "index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionUnlink, "issue_label", err.Error()))
 	}
 
-	labelID, ok := args["label_id"].(float64)
-	if !ok || labelID <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionUnlink, "issue_label", "label_id is required"))
+	labelID, err := requiredPositiveInt(args, "label_id")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionUnlink, "issue_label", err.Error()))
 	}
 
-	_, err = impl.Client.DeleteIssueLabel(owner, repo, int64(index), int64(labelID))
+	_, err = impl.Client.DeleteIssueLabel(owner, repo, index, labelID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to remove label: %w", err)
 	}
 
-	return textResult(fmt.Sprintf("Label %d removed from issue #%d", int(labelID), int(index))), nil, nil
+	return textResult(fmt.Sprintf("Label %d removed from issue #%d", labelID, index)), nil, nil
 }
 
 func (impl UnlinkImpl) removeIssueDependency(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionUnlink, "issue_dependency", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionUnlink, "issue_dependency", err.Error()))
 	}
 
-	index, ok := args["index"].(float64)
-	if !ok || index <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionUnlink, "issue_dependency", "index is required"))
+	index, err := requiredPositiveInt(args, "index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionUnlink, "issue_dependency", err.Error()))
 	}
 
-	dependencyIndex, ok := args["dependency_index"].(float64)
-	if !ok || dependencyIndex <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionUnlink, "issue_dependency", "dependency_index is required"))
+	dependencyIndex, err := requiredPositiveInt(args, "dependency_index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionUnlink, "issue_dependency", err.Error()))
 	}
 
 	dependency := types.MyIssueMeta{
 		Owner: owner,
 		Name:  repo,
-		Index: int64(dependencyIndex),
+		Index: dependencyIndex,
 	}
 
-	_, err = impl.Client.MyRemoveIssueDependency(owner, repo, int64(index), dependency)
+	_, err = impl.Client.MyRemoveIssueDependency(owner, repo, index, dependency)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to remove dependency: %w", err)
 	}
 
 	return textResult(fmt.Sprintf("Issue #%d no longer depends on issue #%d",
-		int(index), int(dependencyIndex))), nil, nil
+		index, dependencyIndex)), nil, nil
 }
 
 func (impl UnlinkImpl) removeIssueBlocking(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionUnlink, "issue_blocking", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionUnlink, "issue_blocking", err.Error()))
 	}
 
-	index, ok := args["index"].(float64)
-	if !ok || index <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionUnlink, "issue_blocking", "index is required"))
+	index, err := requiredPositiveInt(args, "index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionUnlink, "issue_blocking", err.Error()))
 	}
 
-	blockedIndex, ok := args["blocked_index"].(float64)
-	if !ok || blockedIndex <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionUnlink, "issue_blocking", "blocked_index is required"))
+	blockedIndex, err := requiredPositiveInt(args, "blocked_index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionUnlink, "issue_blocking", err.Error()))
 	}
 
 	blocked := types.MyIssueMeta{
 		Owner: owner,
 		Name:  repo,
-		Index: int64(blockedIndex),
+		Index: blockedIndex,
 	}
 
-	_, err = impl.Client.MyRemoveIssueBlocking(owner, repo, int64(index), blocked)
+	_, err = impl.Client.MyRemoveIssueBlocking(owner, repo, index, blocked)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to remove blocking relationship: %w", err)
 	}
 
 	return textResult(fmt.Sprintf("Issue #%d no longer blocks issue #%d",
-		int(index), int(blockedIndex))), nil, nil
+		index, blockedIndex)), nil, nil
 }

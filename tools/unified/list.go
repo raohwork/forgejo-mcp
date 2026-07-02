@@ -8,6 +8,7 @@ package unified
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -58,6 +59,26 @@ Use gitea_manual(action="list") for details.`,
 					Type:        "string",
 					Description: "Repository name (not required for repository listing)",
 				},
+				"index": {
+					Type:        "integer",
+					Description: "Issue number (for issue_comments, issue_attachments, issue_dependencies, issue_blocking)",
+				},
+				"id": {
+					Type:        "integer",
+					Description: "Release ID (for release_attachments)",
+				},
+				"milestone": {
+					Type:        "integer",
+					Description: "Filter by milestone ID (for issues)",
+				},
+				"page": {
+					Type:        "integer",
+					Description: "Page number for pagination",
+				},
+				"limit": {
+					Type:        "integer",
+					Description: "Results per page",
+				},
 			},
 			Required:             []string{"resource"},
 			AdditionalProperties: &jsonschema.Schema{},
@@ -107,7 +128,7 @@ func (impl ListImpl) Handler() mcp.ToolHandlerFor[map[string]any, any] {
 		case "issue_blocking":
 			return impl.listIssueBlocking(args)
 		default:
-			return nil, nil, fmt.Errorf(FormatValidationError(ActionList, resource, "not implemented"))
+			return nil, nil, errors.New(FormatValidationError(ActionList, resource, "not implemented"))
 		}
 	}
 }
@@ -115,7 +136,7 @@ func (impl ListImpl) Handler() mcp.ToolHandlerFor[map[string]any, any] {
 func (impl ListImpl) listIssues(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "issue", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionList, "issue", err.Error()))
 	}
 
 	opt := forgejo.ListIssueOption{}
@@ -135,10 +156,18 @@ func (impl ListImpl) listIssues(args map[string]any) (*mcp.CallToolResult, any, 
 	if assignees, ok := args["assignees"].(string); ok && assignees != "" {
 		opt.AssignedBy = assignees
 	}
-	if page, ok := args["page"].(float64); ok && page > 0 {
+	page, ok, err := optionalPositiveInt(args, "page")
+	if err != nil {
+		return nil, nil, err
+	}
+	if ok {
 		opt.Page = int(page)
 	}
-	if limit, ok := args["limit"].(float64); ok && limit > 0 {
+	limit, ok, err := optionalPositiveInt(args, "limit")
+	if err != nil {
+		return nil, nil, err
+	}
+	if ok {
 		opt.PageSize = int(limit)
 	}
 	if sinceStr, ok := args["since"].(string); ok && sinceStr != "" {
@@ -169,12 +198,12 @@ func (impl ListImpl) listIssues(args map[string]any) (*mcp.CallToolResult, any, 
 func (impl ListImpl) listIssueComments(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "issue_comment", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionList, "issue_comment", err.Error()))
 	}
 
-	index, ok := args["index"].(float64)
-	if !ok || index <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "issue_comment", "index is required"))
+	index, err := requiredPositiveInt(args, "index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionList, "issue_comment", err.Error()))
 	}
 
 	opt := forgejo.ListIssueCommentOptions{}
@@ -193,7 +222,7 @@ func (impl ListImpl) listIssueComments(args map[string]any) (*mcp.CallToolResult
 		opt.Before = before
 	}
 
-	comments, _, err := impl.Client.ListIssueComments(owner, repo, int64(index), opt)
+	comments, _, err := impl.Client.ListIssueComments(owner, repo, index, opt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to list comments: %w", err)
 	}
@@ -213,15 +242,15 @@ func (impl ListImpl) listIssueComments(args map[string]any) (*mcp.CallToolResult
 func (impl ListImpl) listIssueAttachments(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "issue_attachment", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionList, "issue_attachment", err.Error()))
 	}
 
-	index, ok := args["index"].(float64)
-	if !ok || index <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "issue_attachment", "index is required"))
+	index, err := requiredPositiveInt(args, "index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionList, "issue_attachment", err.Error()))
 	}
 
-	attachments, err := impl.Client.MyListIssueAttachments(owner, repo, int64(index))
+	attachments, err := impl.Client.MyListIssueAttachments(owner, repo, index)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to list attachments: %w", err)
 	}
@@ -240,7 +269,7 @@ func (impl ListImpl) listIssueAttachments(args map[string]any) (*mcp.CallToolRes
 func (impl ListImpl) listLabels(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "label", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionList, "label", err.Error()))
 	}
 
 	labels, _, err := impl.Client.ListRepoLabels(owner, repo, forgejo.ListLabelsOptions{})
@@ -262,7 +291,7 @@ func (impl ListImpl) listLabels(args map[string]any) (*mcp.CallToolResult, any, 
 func (impl ListImpl) listMilestones(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "milestone", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionList, "milestone", err.Error()))
 	}
 
 	opt := forgejo.ListMilestoneOption{}
@@ -272,10 +301,18 @@ func (impl ListImpl) listMilestones(args map[string]any) (*mcp.CallToolResult, a
 	if name, ok := args["name"].(string); ok && name != "" {
 		opt.Name = name
 	}
-	if page, ok := args["page"].(float64); ok && page > 0 {
+	page, ok, err := optionalPositiveInt(args, "page")
+	if err != nil {
+		return nil, nil, err
+	}
+	if ok {
 		opt.Page = int(page)
 	}
-	if limit, ok := args["limit"].(float64); ok && limit > 0 {
+	limit, ok, err := optionalPositiveInt(args, "limit")
+	if err != nil {
+		return nil, nil, err
+	}
+	if ok {
 		opt.PageSize = int(limit)
 	}
 
@@ -298,14 +335,22 @@ func (impl ListImpl) listMilestones(args map[string]any) (*mcp.CallToolResult, a
 func (impl ListImpl) listReleases(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "release", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionList, "release", err.Error()))
 	}
 
 	opt := forgejo.ListReleasesOptions{}
-	if page, ok := args["page"].(float64); ok && page > 0 {
+	page, ok, err := optionalPositiveInt(args, "page")
+	if err != nil {
+		return nil, nil, err
+	}
+	if ok {
 		opt.Page = int(page)
 	}
-	if limit, ok := args["limit"].(float64); ok && limit > 0 {
+	limit, ok, err := optionalPositiveInt(args, "limit")
+	if err != nil {
+		return nil, nil, err
+	}
+	if ok {
 		opt.PageSize = int(limit)
 	}
 
@@ -328,15 +373,15 @@ func (impl ListImpl) listReleases(args map[string]any) (*mcp.CallToolResult, any
 func (impl ListImpl) listReleaseAttachments(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "release_attachment", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionList, "release_attachment", err.Error()))
 	}
 
-	id, ok := args["id"].(float64)
-	if !ok || id <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "release_attachment", "id is required"))
+	id, err := requiredPositiveInt(args, "id")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionList, "release_attachment", err.Error()))
 	}
 
-	attachments, _, err := impl.Client.ListReleaseAttachments(owner, repo, int64(id), forgejo.ListReleaseAttachmentsOptions{})
+	attachments, _, err := impl.Client.ListReleaseAttachments(owner, repo, id, forgejo.ListReleaseAttachmentsOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to list release attachments: %w", err)
 	}
@@ -355,7 +400,7 @@ func (impl ListImpl) listReleaseAttachments(args map[string]any) (*mcp.CallToolR
 func (impl ListImpl) listWikiPages(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "wiki_page", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionList, "wiki_page", err.Error()))
 	}
 
 	pages, err := impl.Client.MyListWikiPages(owner, repo)
@@ -374,7 +419,7 @@ func (impl ListImpl) listWikiPages(args map[string]any) (*mcp.CallToolResult, an
 func (impl ListImpl) listPullRequests(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "pull_request", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionList, "pull_request", err.Error()))
 	}
 
 	opt := forgejo.ListPullRequestsOptions{}
@@ -384,13 +429,25 @@ func (impl ListImpl) listPullRequests(args map[string]any) (*mcp.CallToolResult,
 	if sort, ok := args["sort"].(string); ok && sort != "" {
 		opt.Sort = sort
 	}
-	if milestone, ok := args["milestone"].(float64); ok && milestone > 0 {
-		opt.Milestone = int64(milestone)
+	milestone, ok, err := optionalPositiveInt(args, "milestone")
+	if err != nil {
+		return nil, nil, err
 	}
-	if page, ok := args["page"].(float64); ok && page > 0 {
+	if ok {
+		opt.Milestone = milestone
+	}
+	page, ok, err := optionalPositiveInt(args, "page")
+	if err != nil {
+		return nil, nil, err
+	}
+	if ok {
 		opt.Page = int(page)
 	}
-	if limit, ok := args["limit"].(float64); ok && limit > 0 {
+	limit, ok, err := optionalPositiveInt(args, "limit")
+	if err != nil {
+		return nil, nil, err
+	}
+	if ok {
 		opt.PageSize = int(limit)
 	}
 
@@ -413,7 +470,7 @@ func (impl ListImpl) listPullRequests(args map[string]any) (*mcp.CallToolResult,
 func (impl ListImpl) listRepositories(args map[string]any) (*mcp.CallToolResult, any, error) {
 	scope, _ := args["scope"].(string)
 	if scope == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "repository", "scope is required ('my', 'org', or 'search')"))
+		return nil, nil, errors.New(FormatValidationError(ActionList, "repository", "scope is required ('my', 'org', or 'search')"))
 	}
 
 	switch scope {
@@ -424,16 +481,24 @@ func (impl ListImpl) listRepositories(args map[string]any) (*mcp.CallToolResult,
 	case "search":
 		return impl.searchRepositories(args)
 	default:
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "repository", "scope must be 'my', 'org', or 'search'"))
+		return nil, nil, errors.New(FormatValidationError(ActionList, "repository", "scope must be 'my', 'org', or 'search'"))
 	}
 }
 
 func (impl ListImpl) listMyRepositories(args map[string]any) (*mcp.CallToolResult, any, error) {
 	opt := forgejo.ListReposOptions{}
-	if page, ok := args["page"].(float64); ok && page > 0 {
+	page, ok, err := optionalPositiveInt(args, "page")
+	if err != nil {
+		return nil, nil, err
+	}
+	if ok {
 		opt.Page = int(page)
 	}
-	if limit, ok := args["limit"].(float64); ok && limit > 0 {
+	limit, ok, err := optionalPositiveInt(args, "limit")
+	if err != nil {
+		return nil, nil, err
+	}
+	if ok {
 		opt.PageSize = int(limit)
 	}
 
@@ -456,14 +521,22 @@ func (impl ListImpl) listMyRepositories(args map[string]any) (*mcp.CallToolResul
 func (impl ListImpl) listOrgRepositories(args map[string]any) (*mcp.CallToolResult, any, error) {
 	org, _ := args["org"].(string)
 	if org == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "repository", "org is required for scope='org'"))
+		return nil, nil, errors.New(FormatValidationError(ActionList, "repository", "org is required for scope='org'"))
 	}
 
 	opt := forgejo.ListOrgReposOptions{}
-	if page, ok := args["page"].(float64); ok && page > 0 {
+	page, ok, err := optionalPositiveInt(args, "page")
+	if err != nil {
+		return nil, nil, err
+	}
+	if ok {
 		opt.Page = int(page)
 	}
-	if limit, ok := args["limit"].(float64); ok && limit > 0 {
+	limit, ok, err := optionalPositiveInt(args, "limit")
+	if err != nil {
+		return nil, nil, err
+	}
+	if ok {
 		opt.PageSize = int(limit)
 	}
 
@@ -493,10 +566,18 @@ func (impl ListImpl) searchRepositories(args map[string]any) (*mcp.CallToolResul
 	if includeDesc, ok := args["include_desc"].(bool); ok {
 		opt.KeywordInDescription = includeDesc
 	}
-	if page, ok := args["page"].(float64); ok && page > 0 {
+	page, ok, err := optionalPositiveInt(args, "page")
+	if err != nil {
+		return nil, nil, err
+	}
+	if ok {
 		opt.Page = int(page)
 	}
-	if limit, ok := args["limit"].(float64); ok && limit > 0 {
+	limit, ok, err := optionalPositiveInt(args, "limit")
+	if err != nil {
+		return nil, nil, err
+	}
+	if ok {
 		opt.PageSize = int(limit)
 	}
 
@@ -519,7 +600,7 @@ func (impl ListImpl) searchRepositories(args map[string]any) (*mcp.CallToolResul
 func (impl ListImpl) listActionTasks(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "action_task", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionList, "action_task", err.Error()))
 	}
 
 	response, err := impl.Client.MyListActionTasks(owner, repo)
@@ -538,39 +619,39 @@ func (impl ListImpl) listActionTasks(args map[string]any) (*mcp.CallToolResult, 
 func (impl ListImpl) listIssueDependencies(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "issue_dependency", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionList, "issue_dependency", err.Error()))
 	}
 
-	index, ok := args["index"].(float64)
-	if !ok || index <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "issue_dependency", "index is required"))
+	index, err := requiredPositiveInt(args, "index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionList, "issue_dependency", err.Error()))
 	}
 
-	issues, err := impl.Client.MyListIssueDependencies(owner, repo, int64(index))
+	issues, err := impl.Client.MyListIssueDependencies(owner, repo, index)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to list dependencies: %w", err)
 	}
 
 	deps := types.IssueDependencyList(issues)
-	return textResult(fmt.Sprintf("## Issues that block #%d\n\n%s", int(index), deps.ToMarkdown())), nil, nil
+	return textResult(fmt.Sprintf("## Issues that block #%d\n\n%s", index, deps.ToMarkdown())), nil, nil
 }
 
 func (impl ListImpl) listIssueBlocking(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "issue_blocking", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionList, "issue_blocking", err.Error()))
 	}
 
-	index, ok := args["index"].(float64)
-	if !ok || index <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionList, "issue_blocking", "index is required"))
+	index, err := requiredPositiveInt(args, "index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionList, "issue_blocking", err.Error()))
 	}
 
-	issues, err := impl.Client.MyListIssueBlocking(owner, repo, int64(index))
+	issues, err := impl.Client.MyListIssueBlocking(owner, repo, index)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to list blocking issues: %w", err)
 	}
 
 	blocking := types.IssueBlockingList(issues)
-	return textResult(fmt.Sprintf("## Issues blocked by #%d\n\n%s", int(index), blocking.ToMarkdown())), nil, nil
+	return textResult(fmt.Sprintf("## Issues blocked by #%d\n\n%s", index, blocking.ToMarkdown())), nil, nil
 }

@@ -8,6 +8,7 @@ package unified
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -54,6 +55,18 @@ Use gitea_manual(action="delete") for details.`,
 					Type:        "string",
 					Description: "Repository name",
 				},
+				"id": {
+					Type:        "integer",
+					Description: "Resource ID (for issue_comment, label, milestone, release, release_attachment)",
+				},
+				"index": {
+					Type:        "integer",
+					Description: "Issue number (for issue_attachment)",
+				},
+				"attachment_id": {
+					Type:        "integer",
+					Description: "Attachment ID (for issue_attachment, release_attachment)",
+				},
 			},
 			Required:             []string{"resource", "owner", "repo"},
 			AdditionalProperties: &jsonschema.Schema{},
@@ -91,7 +104,7 @@ func (impl DeleteImpl) Handler() mcp.ToolHandlerFor[map[string]any, any] {
 		case "wiki_page":
 			return impl.deleteWikiPage(args)
 		default:
-			return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, resource, "not implemented"))
+			return nil, nil, errors.New(FormatValidationError(ActionDelete, resource, "not implemented"))
 		}
 	}
 }
@@ -99,39 +112,39 @@ func (impl DeleteImpl) Handler() mcp.ToolHandlerFor[map[string]any, any] {
 func (impl DeleteImpl) deleteIssueComment(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, "issue_comment", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionDelete, "issue_comment", err.Error()))
 	}
 
-	id, ok := args["id"].(float64)
-	if !ok || id <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, "issue_comment", "id is required"))
+	id, err := requiredPositiveInt(args, "id")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionDelete, "issue_comment", err.Error()))
 	}
 
-	_, err = impl.Client.DeleteIssueComment(owner, repo, int64(id))
+	_, err = impl.Client.DeleteIssueComment(owner, repo, id)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to delete comment: %w", err)
 	}
 
-	return textResult(fmt.Sprintf("Comment %d successfully deleted.", int64(id))), nil, nil
+	return textResult(fmt.Sprintf("Comment %d successfully deleted.", id)), nil, nil
 }
 
 func (impl DeleteImpl) deleteIssueAttachment(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, "issue_attachment", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionDelete, "issue_attachment", err.Error()))
 	}
 
-	index, ok := args["index"].(float64)
-	if !ok || index <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, "issue_attachment", "index is required"))
+	index, err := requiredPositiveInt(args, "index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionDelete, "issue_attachment", err.Error()))
 	}
 
-	attachmentID, ok := args["attachment_id"].(float64)
-	if !ok || attachmentID <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, "issue_attachment", "attachment_id is required"))
+	attachmentID, err := requiredPositiveInt(args, "attachment_id")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionDelete, "issue_attachment", err.Error()))
 	}
 
-	err = impl.Client.MyDeleteIssueAttachment(owner, repo, int64(index), int64(attachmentID))
+	err = impl.Client.MyDeleteIssueAttachment(owner, repo, index, attachmentID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to delete attachment: %w", err)
 	}
@@ -142,15 +155,15 @@ func (impl DeleteImpl) deleteIssueAttachment(args map[string]any) (*mcp.CallTool
 func (impl DeleteImpl) deleteLabel(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, "label", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionDelete, "label", err.Error()))
 	}
 
-	id, ok := args["id"].(float64)
-	if !ok || id <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, "label", "id is required"))
+	id, err := requiredPositiveInt(args, "id")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionDelete, "label", err.Error()))
 	}
 
-	_, err = impl.Client.DeleteLabel(owner, repo, int64(id))
+	_, err = impl.Client.DeleteLabel(owner, repo, id)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to delete label: %w", err)
 	}
@@ -161,15 +174,15 @@ func (impl DeleteImpl) deleteLabel(args map[string]any) (*mcp.CallToolResult, an
 func (impl DeleteImpl) deleteMilestone(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, "milestone", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionDelete, "milestone", err.Error()))
 	}
 
-	id, ok := args["id"].(float64)
-	if !ok || id <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, "milestone", "id is required"))
+	id, err := requiredPositiveInt(args, "id")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionDelete, "milestone", err.Error()))
 	}
 
-	_, err = impl.Client.DeleteMilestone(owner, repo, int64(id))
+	_, err = impl.Client.DeleteMilestone(owner, repo, id)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to delete milestone: %w", err)
 	}
@@ -180,15 +193,15 @@ func (impl DeleteImpl) deleteMilestone(args map[string]any) (*mcp.CallToolResult
 func (impl DeleteImpl) deleteRelease(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, "release", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionDelete, "release", err.Error()))
 	}
 
-	id, ok := args["id"].(float64)
-	if !ok || id <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, "release", "id is required"))
+	id, err := requiredPositiveInt(args, "id")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionDelete, "release", err.Error()))
 	}
 
-	_, err = impl.Client.DeleteRelease(owner, repo, int64(id))
+	_, err = impl.Client.DeleteRelease(owner, repo, id)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to delete release: %w", err)
 	}
@@ -199,20 +212,20 @@ func (impl DeleteImpl) deleteRelease(args map[string]any) (*mcp.CallToolResult, 
 func (impl DeleteImpl) deleteReleaseAttachment(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, "release_attachment", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionDelete, "release_attachment", err.Error()))
 	}
 
-	id, ok := args["id"].(float64)
-	if !ok || id <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, "release_attachment", "id is required"))
+	id, err := requiredPositiveInt(args, "id")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionDelete, "release_attachment", err.Error()))
 	}
 
-	attachmentID, ok := args["attachment_id"].(float64)
-	if !ok || attachmentID <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, "release_attachment", "attachment_id is required"))
+	attachmentID, err := requiredPositiveInt(args, "attachment_id")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionDelete, "release_attachment", err.Error()))
 	}
 
-	_, err = impl.Client.DeleteReleaseAttachment(owner, repo, int64(id), int64(attachmentID))
+	_, err = impl.Client.DeleteReleaseAttachment(owner, repo, id, attachmentID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to delete release attachment: %w", err)
 	}
@@ -223,12 +236,12 @@ func (impl DeleteImpl) deleteReleaseAttachment(args map[string]any) (*mcp.CallTo
 func (impl DeleteImpl) deleteWikiPage(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, "wiki_page", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionDelete, "wiki_page", err.Error()))
 	}
 
 	pageName, _ := args["page_name"].(string)
 	if pageName == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionDelete, "wiki_page", "page_name is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionDelete, "wiki_page", "page_name is required"))
 	}
 
 	err = impl.Client.MyDeleteWikiPage(owner, repo, pageName)

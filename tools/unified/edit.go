@@ -9,6 +9,7 @@ package unified
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"time"
 
@@ -57,6 +58,27 @@ Use gitea_manual(action="edit") for details.`,
 					Type:        "string",
 					Description: "Repository name",
 				},
+				"index": {
+					Type:        "integer",
+					Description: "Issue number (for issue, issue_attachment)",
+				},
+				"id": {
+					Type:        "integer",
+					Description: "Resource ID (for issue_comment, label, milestone, release, release_attachment)",
+				},
+				"attachment_id": {
+					Type:        "integer",
+					Description: "Attachment ID (for issue_attachment, release_attachment)",
+				},
+				"milestone": {
+					Type:        "integer",
+					Description: "Milestone ID (for issue)",
+				},
+				"assignees": {
+					Type:        "array",
+					Items:       &jsonschema.Schema{Type: "string"},
+					Description: "Usernames to assign (for issue)",
+				},
 			},
 			Required:             []string{"resource", "owner", "repo"},
 			AdditionalProperties: &jsonschema.Schema{},
@@ -96,7 +118,7 @@ func (impl EditImpl) Handler() mcp.ToolHandlerFor[map[string]any, any] {
 		case "wiki_page":
 			return impl.editWikiPage(args)
 		default:
-			return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, resource, "not implemented"))
+			return nil, nil, errors.New(FormatValidationError(ActionEdit, resource, "not implemented"))
 		}
 	}
 }
@@ -104,12 +126,12 @@ func (impl EditImpl) Handler() mcp.ToolHandlerFor[map[string]any, any] {
 func (impl EditImpl) editIssue(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "issue", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "issue", err.Error()))
 	}
 
-	index, ok := args["index"].(float64)
-	if !ok || index <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "issue", "index is required"))
+	index, err := requiredPositiveInt(args, "index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "issue", err.Error()))
 	}
 
 	opt := forgejo.EditIssueOption{}
@@ -124,11 +146,19 @@ func (impl EditImpl) editIssue(args map[string]any) (*mcp.CallToolResult, any, e
 		s := forgejo.StateType(state)
 		opt.State = &s
 	}
-	if assignees, ok := args["assignees"].([]any); ok {
-		opt.Assignees = toStringSlice(assignees)
+	assignees, err := stringList(args, "assignees")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "issue", err.Error()))
 	}
-	if milestone, ok := args["milestone"].(float64); ok && milestone > 0 {
-		m := int64(milestone)
+	if assignees != nil {
+		opt.Assignees = assignees
+	}
+	milestone, ok, err := optionalPositiveInt(args, "milestone")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "issue", err.Error()))
+	}
+	if ok {
+		m := milestone
 		opt.Milestone = &m
 	}
 	if dueDateStr, ok := args["due_date"].(string); ok && dueDateStr != "" {
@@ -139,7 +169,7 @@ func (impl EditImpl) editIssue(args map[string]any) (*mcp.CallToolResult, any, e
 		opt.Deadline = &dueDate
 	}
 
-	issue, _, err := impl.Client.EditIssue(owner, repo, int64(index), opt)
+	issue, _, err := impl.Client.EditIssue(owner, repo, index, opt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to edit issue: %w", err)
 	}
@@ -150,21 +180,21 @@ func (impl EditImpl) editIssue(args map[string]any) (*mcp.CallToolResult, any, e
 func (impl EditImpl) editIssueComment(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "issue_comment", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "issue_comment", err.Error()))
 	}
 
-	id, ok := args["id"].(float64)
-	if !ok || id <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "issue_comment", "id is required"))
+	id, err := requiredPositiveInt(args, "id")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "issue_comment", err.Error()))
 	}
 
 	body, _ := args["body"].(string)
 	if body == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "issue_comment", "body is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "issue_comment", "body is required"))
 	}
 
 	opt := forgejo.EditIssueCommentOption{Body: body}
-	comment, _, err := impl.Client.EditIssueComment(owner, repo, int64(id), opt)
+	comment, _, err := impl.Client.EditIssueComment(owner, repo, id, opt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to edit comment: %w", err)
 	}
@@ -175,26 +205,26 @@ func (impl EditImpl) editIssueComment(args map[string]any) (*mcp.CallToolResult,
 func (impl EditImpl) editIssueAttachment(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "issue_attachment", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "issue_attachment", err.Error()))
 	}
 
-	index, ok := args["index"].(float64)
-	if !ok || index <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "issue_attachment", "index is required"))
+	index, err := requiredPositiveInt(args, "index")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "issue_attachment", err.Error()))
 	}
 
-	attachmentID, ok := args["attachment_id"].(float64)
-	if !ok || attachmentID <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "issue_attachment", "attachment_id is required"))
+	attachmentID, err := requiredPositiveInt(args, "attachment_id")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "issue_attachment", err.Error()))
 	}
 
 	name, _ := args["name"].(string)
 	if name == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "issue_attachment", "name is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "issue_attachment", "name is required"))
 	}
 
 	options := tools.MyEditAttachmentOptions{Name: name}
-	attachment, err := impl.Client.MyEditIssueAttachment(owner, repo, int64(index), int64(attachmentID), options)
+	attachment, err := impl.Client.MyEditIssueAttachment(owner, repo, index, attachmentID, options)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to edit attachment: %w", err)
 	}
@@ -205,12 +235,12 @@ func (impl EditImpl) editIssueAttachment(args map[string]any) (*mcp.CallToolResu
 func (impl EditImpl) editLabel(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "label", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "label", err.Error()))
 	}
 
-	id, ok := args["id"].(float64)
-	if !ok || id <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "label", "id is required"))
+	id, err := requiredPositiveInt(args, "id")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "label", err.Error()))
 	}
 
 	opt := forgejo.EditLabelOption{}
@@ -224,7 +254,7 @@ func (impl EditImpl) editLabel(args map[string]any) (*mcp.CallToolResult, any, e
 		opt.Description = &description
 	}
 
-	label, _, err := impl.Client.EditLabel(owner, repo, int64(id), opt)
+	label, _, err := impl.Client.EditLabel(owner, repo, id, opt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to edit label: %w", err)
 	}
@@ -235,12 +265,12 @@ func (impl EditImpl) editLabel(args map[string]any) (*mcp.CallToolResult, any, e
 func (impl EditImpl) editMilestone(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "milestone", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "milestone", err.Error()))
 	}
 
-	id, ok := args["id"].(float64)
-	if !ok || id <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "milestone", "id is required"))
+	id, err := requiredPositiveInt(args, "id")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "milestone", err.Error()))
 	}
 
 	opt := forgejo.EditMilestoneOption{}
@@ -262,7 +292,7 @@ func (impl EditImpl) editMilestone(args map[string]any) (*mcp.CallToolResult, an
 		opt.Deadline = &dueDate
 	}
 
-	milestone, _, err := impl.Client.EditMilestone(owner, repo, int64(id), opt)
+	milestone, _, err := impl.Client.EditMilestone(owner, repo, id, opt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to edit milestone: %w", err)
 	}
@@ -273,12 +303,12 @@ func (impl EditImpl) editMilestone(args map[string]any) (*mcp.CallToolResult, an
 func (impl EditImpl) editRelease(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "release", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "release", err.Error()))
 	}
 
-	id, ok := args["id"].(float64)
-	if !ok || id <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "release", "id is required"))
+	id, err := requiredPositiveInt(args, "id")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "release", err.Error()))
 	}
 
 	opt := forgejo.EditReleaseOption{}
@@ -301,7 +331,7 @@ func (impl EditImpl) editRelease(args map[string]any) (*mcp.CallToolResult, any,
 		opt.IsPrerelease = &prerelease
 	}
 
-	release, _, err := impl.Client.EditRelease(owner, repo, int64(id), opt)
+	release, _, err := impl.Client.EditRelease(owner, repo, id, opt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to edit release: %w", err)
 	}
@@ -312,26 +342,26 @@ func (impl EditImpl) editRelease(args map[string]any) (*mcp.CallToolResult, any,
 func (impl EditImpl) editReleaseAttachment(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "release_attachment", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "release_attachment", err.Error()))
 	}
 
-	id, ok := args["id"].(float64)
-	if !ok || id <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "release_attachment", "id is required"))
+	id, err := requiredPositiveInt(args, "id")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "release_attachment", err.Error()))
 	}
 
-	attachmentID, ok := args["attachment_id"].(float64)
-	if !ok || attachmentID <= 0 {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "release_attachment", "attachment_id is required"))
+	attachmentID, err := requiredPositiveInt(args, "attachment_id")
+	if err != nil {
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "release_attachment", err.Error()))
 	}
 
 	name, _ := args["name"].(string)
 	if name == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "release_attachment", "name is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "release_attachment", "name is required"))
 	}
 
 	opt := forgejo.EditAttachmentOptions{Name: name}
-	attachment, _, err := impl.Client.EditReleaseAttachment(owner, repo, int64(id), int64(attachmentID), opt)
+	attachment, _, err := impl.Client.EditReleaseAttachment(owner, repo, id, attachmentID, opt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to edit release attachment: %w", err)
 	}
@@ -342,17 +372,17 @@ func (impl EditImpl) editReleaseAttachment(args map[string]any) (*mcp.CallToolRe
 func (impl EditImpl) editWikiPage(args map[string]any) (*mcp.CallToolResult, any, error) {
 	owner, repo, err := extractOwnerRepo(args)
 	if err != nil {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "wiki_page", err.Error()))
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "wiki_page", err.Error()))
 	}
 
 	pageName, _ := args["page_name"].(string)
 	if pageName == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "wiki_page", "page_name is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "wiki_page", "page_name is required"))
 	}
 
 	content, _ := args["content"].(string)
 	if content == "" {
-		return nil, nil, fmt.Errorf(FormatValidationError(ActionEdit, "wiki_page", "content is required"))
+		return nil, nil, errors.New(FormatValidationError(ActionEdit, "wiki_page", "content is required"))
 	}
 
 	title, _ := args["title"].(string)

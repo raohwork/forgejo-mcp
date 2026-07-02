@@ -205,8 +205,8 @@ var Manual = map[string]ManualEntry{
 		Action:      ActionGet,
 		Resource:    ResourceRepository,
 		Description: "Get details of a specific repository.",
-		Params: commonRepoParams(),
-		Example: `get_gitea(resource="repository", owner="org", repo="project")`,
+		Params:      commonRepoParams(),
+		Example:     `get_gitea(resource="repository", owner="org", repo="project")`,
 	},
 
 	// === LIST ===

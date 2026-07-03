@@ -51,3 +51,24 @@ func (c *Client) MyGetActionJobLogs(owner, repo string, jobID, attempt int64) (s
 
 	return c.sendTextRequest("GET", endpoint)
 }
+
+// MyDispatchWorkflow triggers a workflow_dispatch run of the given workflow file.
+// It always requests run info so the caller can learn the resulting run number
+// and job names; servers that predate that field simply return an empty result.
+// POST /repos/{owner}/{repo}/actions/workflows/{workflowfilename}/dispatches
+func (c *Client) MyDispatchWorkflow(owner, repo, workflow, ref string, inputs map[string]string) (*types.MyDispatchWorkflowRun, error) {
+	endpoint := fmt.Sprintf("/api/v1/repos/%s/%s/actions/workflows/%s/dispatches", owner, repo, workflow)
+
+	payload := types.MyDispatchWorkflowOption{
+		Ref:           ref,
+		Inputs:        inputs,
+		ReturnRunInfo: true,
+	}
+
+	var result types.MyDispatchWorkflowRun
+	if err := c.sendJSONRequestAllowEmpty("POST", endpoint, payload, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}

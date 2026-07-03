@@ -189,3 +189,34 @@ func TestActionRunJobList_ToMarkdown(t *testing.T) {
 		})
 	}
 }
+
+func TestMyDispatchWorkflowRun_ToMarkdown(t *testing.T) {
+	tests := []struct {
+		name     string
+		run      *MyDispatchWorkflowRun
+		required []string
+	}{
+		{
+			name:     "run with jobs",
+			run:      &MyDispatchWorkflowRun{ID: 99, RunNumber: 7, Jobs: []string{"build", "test"}},
+			required: []string{"Run #7", "run id: 99", "Jobs:", "build", "test", "list_action_run_jobs with run_id 99"},
+		},
+		{
+			name:     "run without jobs",
+			run:      &MyDispatchWorkflowRun{ID: 100, RunNumber: 8},
+			required: []string{"Run #8", "run id: 100"},
+		},
+		{
+			name:     "no run info returned by server",
+			run:      &MyDispatchWorkflowRun{},
+			required: []string{"dispatched successfully", "does not report"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := tt.run.ToMarkdown()
+			assertContains(t, output, tt.required)
+		})
+	}
+}

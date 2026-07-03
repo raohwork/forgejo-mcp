@@ -110,6 +110,37 @@ func (j *MyActionRunJob) ToMarkdown() string {
 	return markdown
 }
 
+// MyDispatchWorkflowOption is the request body for dispatching a workflow.
+// Used by endpoints:
+// - POST /repos/{owner}/{repo}/actions/workflows/{workflowfilename}/dispatches
+type MyDispatchWorkflowOption struct {
+	Ref           string            `json:"ref"`
+	Inputs        map[string]string `json:"inputs,omitempty"`
+	ReturnRunInfo bool              `json:"return_run_info,omitempty"`
+}
+
+// MyDispatchWorkflowRun represents the run created by dispatching a workflow.
+// Fields are only populated when the server supports return_run_info.
+type MyDispatchWorkflowRun struct {
+	ID        int64    `json:"id"`
+	RunNumber int64    `json:"run_number"`
+	Jobs      []string `json:"jobs"`
+}
+
+// ToMarkdown renders the dispatched run, or a generic confirmation when the
+// server did not return run info.
+func (r *MyDispatchWorkflowRun) ToMarkdown() string {
+	if r == nil || (r.ID == 0 && r.RunNumber == 0) {
+		return "Workflow dispatched successfully. (This Forgejo version does not report the new run id; check the Actions tab.)"
+	}
+	markdown := fmt.Sprintf("Workflow dispatched successfully.\n\n**Run #%d** (run id: %d)", r.RunNumber, r.ID)
+	if len(r.Jobs) > 0 {
+		markdown += fmt.Sprintf(" | Jobs: %v", r.Jobs)
+	}
+	markdown += fmt.Sprintf("\n\nUse list_action_run_jobs with run_id %d to get job IDs, then get_action_job_logs to read logs.", r.ID)
+	return markdown
+}
+
 // ActionRunJobList represents a list of workflow run jobs
 // Used by endpoints:
 // - GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs

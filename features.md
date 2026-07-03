@@ -163,6 +163,14 @@ Labels available for a specific repository
 - **List Action execution tasks**
   - `GET /repos/{owner}/{repo}/actions/tasks`
   - Custom: Not supported by SDK, requires custom HTTP request
+- **List jobs of a workflow run**
+  - `GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs`
+  - Custom: Not supported by SDK, requires custom HTTP request
+  - Note: requires a Forgejo version that provides the run jobs API
+- **Download job logs**
+  - `GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs`
+  - Custom: Not supported by SDK, requires custom HTTP request
+  - Note: requires a Forgejo version that provides the job logs API
 
 ## Summary
 

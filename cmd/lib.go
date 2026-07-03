@@ -97,6 +97,8 @@ func registerCommands(s *mcp.Server, cl *tools.Client) {
 
 	// Action tools
 	tools.Register(s, &action.ListActionTasksImpl{Client: cl})
+	tools.Register(s, &action.ListActionRunJobsImpl{Client: cl})
+	tools.Register(s, &action.GetActionJobLogsImpl{Client: cl})
 }
 
 func createServer(cl *tools.Client) *mcp.Server {

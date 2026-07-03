@@ -81,3 +81,51 @@ type MyActionTaskResponse struct {
 	TotalCount   int64           `json:"total_count"`
 	WorkflowRuns []*MyActionTask `json:"workflow_runs"`
 }
+
+// MyActionRunJob represents a job of a Forgejo Actions workflow run.
+// Used by endpoints:
+// - GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs
+type MyActionRunJob struct {
+	ID      int64    `json:"id"`
+	RunID   int64    `json:"run_id"`
+	Name    string   `json:"name"`
+	Status  string   `json:"status"`
+	Attempt int64    `json:"attempt"`
+	Needs   []string `json:"needs"`
+	RunsOn  []string `json:"runs_on"`
+	TaskID  int64    `json:"task_id"`
+}
+
+// ToMarkdown renders a run job with name, status and the IDs needed to fetch logs
+func (j *MyActionRunJob) ToMarkdown() string {
+	markdown := fmt.Sprintf("**%s** `%s` - Job ID: %d", j.Name, j.Status, j.ID)
+
+	if j.Attempt > 1 {
+		markdown += fmt.Sprintf(" | Attempts: %d", j.Attempt)
+	}
+	if len(j.Needs) > 0 {
+		markdown += fmt.Sprintf(" | Needs: %v", j.Needs)
+	}
+
+	return markdown
+}
+
+// ActionRunJobList represents a list of workflow run jobs
+// Used by endpoints:
+// - GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs
+type ActionRunJobList []*MyActionRunJob
+
+// ToMarkdown renders run jobs as a numbered list
+// Example:
+// 1. **build** `success` - Job ID: 42
+// 2. **deploy** `failure` - Job ID: 43 | Needs: [build]
+func (jl ActionRunJobList) ToMarkdown() string {
+	if len(jl) == 0 {
+		return "*No jobs found*"
+	}
+	markdown := ""
+	for i, job := range jl {
+		markdown += fmt.Sprintf("%d. %s\n", i+1, job.ToMarkdown())
+	}
+	return markdown
+}

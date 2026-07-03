@@ -130,6 +130,52 @@ func (c *Client) sendSimpleRequest(method, endpoint string, paramObj, respObj an
 	return nil
 }
 
+// sendTextRequest handles API requests that return plain text instead of JSON,
+// such as action job logs.
+// method: HTTP method (usually GET)
+// endpoint: API endpoint path (relative to base URL)
+func (c *Client) sendTextRequest(method, endpoint string) (string, error) {
+	// Build complete URL
+	u, err := url.Parse(c.base + endpoint)
+	if err != nil {
+		return "", fmt.Errorf("invalid URL: %w", err)
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequest(method, u.String(), nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set headers
+	req.Header.Set("Accept", "text/plain")
+
+	// Set authentication header manually
+	if c.token != "" {
+		req.Header.Set("Authorization", "token "+c.token)
+	}
+
+	// Send request
+	resp, err := c.cl.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check HTTP status
+	if resp.StatusCode >= 400 {
+		return "", fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
+	}
+
+	// Read plain text response
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	return string(data), nil
+}
+
 // sendUploadRequest handles file upload requests (multipart/form-data)
 // endpoint: API endpoint path (fixed to use POST)
 // filename: upload file name

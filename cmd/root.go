@@ -32,7 +32,7 @@ Supported operations:
   - Pull requests (list, view)
   - Repository search and listing
   - Wiki pages (create, edit, delete, list)
-  - Forgejo Actions tasks (list)
+  - Forgejo Actions (list tasks, list run jobs, fetch job logs, dispatch workflows)
 
 Available transport modes:
   - stdio: Standard input/output (best for local integration)

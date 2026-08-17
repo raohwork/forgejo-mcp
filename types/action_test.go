@@ -121,3 +121,102 @@ func TestActionTaskList_ToMarkdown(t *testing.T) {
 		})
 	}
 }
+
+func TestMyActionRunJob_ToMarkdown(t *testing.T) {
+	tests := []struct {
+		name     string
+		job      *MyActionRunJob
+		required []string
+	}{
+		{
+			name: "successful job",
+			job: &MyActionRunJob{
+				ID:      42,
+				RunID:   7,
+				Name:    "build",
+				Status:  "success",
+				Attempt: 1,
+			},
+			required: []string{"build", "success", "Job ID: 42"},
+		},
+		{
+			name: "retried job with dependencies",
+			job: &MyActionRunJob{
+				ID:      43,
+				RunID:   7,
+				Name:    "deploy",
+				Status:  "failure",
+				Attempt: 3,
+				Needs:   []string{"build"},
+			},
+			required: []string{"deploy", "failure", "Job ID: 43", "Attempts: 3", "Needs: [build]"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := tt.job.ToMarkdown()
+			assertContains(t, output, tt.required)
+		})
+	}
+}
+
+func TestActionRunJobList_ToMarkdown(t *testing.T) {
+	tests := []struct {
+		name     string
+		jobs     ActionRunJobList
+		required []string
+	}{
+		{
+			name: "multiple jobs",
+			jobs: ActionRunJobList{
+				{ID: 42, Name: "build", Status: "success", Attempt: 1},
+				{ID: 43, Name: "deploy", Status: "failure", Attempt: 1},
+			},
+			required: []string{"1.", "build", "success", "Job ID: 42", "2.", "deploy", "failure", "Job ID: 43"},
+		},
+		{
+			name:     "empty job list",
+			jobs:     ActionRunJobList{},
+			required: []string{"No jobs found"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := tt.jobs.ToMarkdown()
+			assertContains(t, output, tt.required)
+		})
+	}
+}
+
+func TestMyDispatchWorkflowRun_ToMarkdown(t *testing.T) {
+	tests := []struct {
+		name     string
+		run      *MyDispatchWorkflowRun
+		required []string
+	}{
+		{
+			name:     "run with jobs",
+			run:      &MyDispatchWorkflowRun{ID: 99, RunNumber: 7, Jobs: []string{"build", "test"}},
+			required: []string{"Run #7", "run id: 99", "Jobs:", "build", "test", "list_action_run_jobs with run_id 99"},
+		},
+		{
+			name:     "run without jobs",
+			run:      &MyDispatchWorkflowRun{ID: 100, RunNumber: 8},
+			required: []string{"Run #8", "run id: 100"},
+		},
+		{
+			name:     "no run info returned by server",
+			run:      &MyDispatchWorkflowRun{},
+			required: []string{"dispatched successfully", "does not report"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := tt.run.ToMarkdown()
+			assertContains(t, output, tt.required)
+		})
+	}
+}

@@ -30,7 +30,7 @@ Supported operations:
   - Milestones (list, create, edit, delete)
   - Releases (list, create, edit, delete, manage attachments)
   - Pull requests (list, view)
-  - Repository search and listing
+  - Repository search, listing and creation
   - Wiki pages (create, edit, delete, list)
   - Forgejo Actions tasks (list)
 

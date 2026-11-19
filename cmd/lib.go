@@ -82,6 +82,12 @@ func registerCommands(s *mcp.Server, cl *tools.Client) {
 	tools.Register(s, &pullreq.GetPullRequestImpl{Client: cl})
 	tools.Register(s, &pullreq.CreatePullRequestImpl{Client: cl})
 
+	// Pull request review tools
+	tools.Register(s, &pullreq.ListPullReviewsImpl{Client: cl})
+	tools.Register(s, &pullreq.ListPullReviewCommentsImpl{Client: cl})
+	tools.Register(s, &pullreq.CreatePullReviewImpl{Client: cl})
+	tools.Register(s, &pullreq.ReplyPullReviewCommentImpl{Client: cl})
+
 	// Repository tools
 	tools.Register(s, &repo.SearchRepositoriesImpl{Client: cl})
 	tools.Register(s, &repo.ListMyRepositoriesImpl{Client: cl})

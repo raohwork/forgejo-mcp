@@ -11,7 +11,7 @@ This project provides MCP integration for managing Forgejo/Gitea repositories th
 - Labels (list, create, edit, delete)
 - Milestones (list, create, edit, delete)
 - Releases (list, create, edit, delete, manage assets)
-- Pull requests (list, view)
+- Pull requests (list, view, create, reviews, reply to inline review comments)
 - Repository search and listing
 - Wiki pages (create, edit, delete)
 - Forgejo Actions tasks (view)
@@ -113,7 +113,8 @@ tools/
 │   └── attach.go       # release attachments
 ├── pullreq/            # Pull Request operations
 │   ├── list.go         # list pull requests
-│   └── view.go         # get pull request details
+│   ├── view.go         # get pull request details
+│   └── review.go       # reviews, inline comments, replies
 ├── action/             # Forgejo Actions (CI/CD)
 │   └── list.go         # list_action_tasks
 ├── wiki/               # Wiki pages
